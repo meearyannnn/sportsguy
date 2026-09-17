@@ -8,52 +8,63 @@
 */
 
 :root {
-  /* Dark Mode Default (Graphite #121214) */
-  --bg-primary: #121214;
-  --bg-secondary: #18181B;
-  --bg-tertiary: #202024;
-  --border-subtle: #2A2A2D;
-  --border-hover: #3F3F46;
-  --text-primary: #EDEDED;
-  --text-secondary: #A1A1AA;
-  --text-muted: #71717A;
+  /* APEX Grid Design System — Carbon Obsidian & Electric Crimson */
+  --bg-primary: #0A0B0E;
+  --bg-secondary: #12141C;
+  --bg-tertiary: #1A1D28;
+  --bg-card: #141622;
+  --border-subtle: #242838;
+  --border-hover: #3A4056;
+  --text-primary: #F3F4F6;
+  --text-secondary: #9CA3AF;
+  --text-muted: #6B7280;
 
-  /* ONE Structural Signal Accent (Strictly reserved for live/P1/critical) */
-  --accent-f1-red: #E10600;
-  --accent-f1-red-muted: rgba(225, 6, 0, 0.12);
+  /* APEX Distinct Brand Identity */
+  --apex-crimson: #FF1801;
+  --apex-crimson-hover: #E01400;
+  --apex-crimson-glow: rgba(255, 24, 1, 0.35);
+  --apex-gold: #FFC72C;
+  --apex-silver: #D1D5DB;
+  --apex-bronze: #D97706;
 
-  /* Data Signal Colors */
+  /* Legacy mapping compatibility */
+  --accent-f1-red: #FF1801;
+  --accent-f1-red-muted: rgba(255, 24, 1, 0.14);
   --signal-green: #10B981;
   --signal-amber: #F59E0B;
   --signal-purple: #A855F7;
-  --signal-neutral: #71717A;
 
   /* Rail state */
-  --rail-color: #2A2A2D;
-  --rail-live-color: #E10600;
+  --rail-color: #242838;
+  --rail-live-color: #FF1801;
 }
 
 .light {
-  /* Light Mode (Warm off-white #FAFAF8) */
-  --bg-primary: #FAFAF8;
-  --bg-secondary: #F2F2EE;
-  --bg-tertiary: #EAEAE6;
-  --border-subtle: #E4E4E0;
-  --border-hover: #D4D4D0;
-  --text-primary: #1C1C1E;
-  --text-secondary: #52525B;
-  --text-muted: #71717A;
+  --bg-primary: #F8F9FA;
+  --bg-secondary: #EDF0F5;
+  --bg-tertiary: #E2E6EF;
+  --bg-card: #FFFFFF;
+  --border-subtle: #CBD5E1;
+  --border-hover: #94A3B8;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
 
-  --accent-f1-red: #E10600;
-  --accent-f1-red-muted: rgba(225, 6, 0, 0.08);
+  --apex-crimson: #FF1801;
+  --apex-crimson-hover: #D91400;
+  --apex-crimson-glow: rgba(255, 24, 1, 0.2);
+  --apex-gold: #D97706;
+  --apex-silver: #64748B;
+  --apex-bronze: #B45309;
 
+  --accent-f1-red: #FF1801;
+  --accent-f1-red-muted: rgba(255, 24, 1, 0.1);
   --signal-green: #059669;
   --signal-amber: #D97706;
   --signal-purple: #9333EA;
-  --signal-neutral: #A1A1AA;
 
-  --rail-color: #E4E4E0;
-  --rail-live-color: #E10600;
+  --rail-color: #CBD5E1;
+  --rail-live-color: #FF1801;
 }
 
 body {

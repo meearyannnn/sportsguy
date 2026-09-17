@@ -219,7 +219,6 @@ export interface OpenF1Lap {
   st_speed: number | null;
 }
 
-// Team Colors & Info
 export interface TeamMeta {
   id: string;
   name: string;
@@ -233,4 +232,6 @@ export interface TeamMeta {
   teamPrincipal: string;
   championships: number;
   drivers: string[];
+  carImageUrl?: string;
+  logoImageUrl?: string;
 }

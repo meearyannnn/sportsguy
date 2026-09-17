@@ -290,19 +290,41 @@ export default function StandingsView({
                   </span>
                 </div>
 
-                {/* CONSTRUCTOR */}
+                {/* CONSTRUCTOR WITH CAR SIDE PROFILE */}
                 <div className="col-span-6 sm:col-span-5 min-w-0 pr-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <span
-                      className="w-2 h-2 rounded-full shrink-0 border border-black/30"
+                      className="w-2.5 h-7 rounded-full shrink-0 border border-black/30 shadow-sm"
                       style={{ backgroundColor: team.color }}
                     ></span>
-                    <span className="font-hud font-bold uppercase text-xs sm:text-base text-[var(--text-primary)] group-hover:text-white truncate">
-                      {standing.Constructor.name}
-                    </span>
-                  </div>
-                  <div className="text-[10px] text-[var(--text-muted)] truncate pl-4">
-                    {team.powerUnit} • {team.base}
+                    
+                    {team.carImageUrl && (
+                      <img
+                        src={team.carImageUrl}
+                        alt={team.name}
+                        className="h-7 w-auto object-contain shrink-0 hidden md:block filter drop-shadow-md"
+                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      />
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 truncate">
+                        <span className="font-hud font-extrabold uppercase text-xs sm:text-base text-[var(--text-primary)] group-hover:text-[var(--apex-crimson)] transition-colors truncate">
+                          {standing.Constructor.name}
+                        </span>
+                        {team.logoImageUrl && (
+                          <img
+                            src={team.logoImageUrl}
+                            alt={team.name}
+                            className="h-3.5 w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity hidden sm:block"
+                            onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                          />
+                        )}
+                      </div>
+                      <div className="text-[10px] text-[var(--text-muted)] truncate">
+                        {team.powerUnit} Power • {team.base}
+                      </div>
+                    </div>
                   </div>
                 </div>
 

@@ -14,6 +14,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Frédéric Vasseur',
     championships: 16,
     drivers: ['leclerc', 'hamilton', 'sainz'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/ferrari/2026ferraricarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/ferrari/2026ferrarilogowhite.webp',
   },
   mclaren: {
     id: 'mclaren',
@@ -28,6 +30,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Andrea Stella',
     championships: 8,
     drivers: ['norris', 'piastri'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/mclaren/2026mclarencarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/mclaren/2026mclarenlogowhite.webp',
   },
   mercedes: {
     id: 'mercedes',
@@ -42,6 +46,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Toto Wolff',
     championships: 8,
     drivers: ['russell', 'antonelli'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/mercedes/2026mercedescarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/mercedes/2026mercedeslogowhite.webp',
   },
   red_bull: {
     id: 'red_bull',
@@ -56,6 +62,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Christian Horner',
     championships: 6,
     drivers: ['max_verstappen', 'lawson', 'perez'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/redbullracing/2026redbullracingcarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/redbullracing/2026redbullracinglogowhite.webp',
   },
   aston_martin: {
     id: 'aston_martin',
@@ -70,6 +78,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Mike Krack',
     championships: 0,
     drivers: ['alonso', 'stroll'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/astonmartin/2026astonmartincarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/astonmartin/2026astonmartinlogowhite.webp',
   },
   alpine: {
     id: 'alpine',
@@ -84,6 +94,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Oliver Oakes',
     championships: 2,
     drivers: ['gasly', 'doohan'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/alpine/2026alpinecarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/alpine/2026alpinelogowhite.webp',
   },
   williams: {
     id: 'williams',
@@ -98,6 +110,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'James Vowles',
     championships: 9,
     drivers: ['albon', 'sainz', 'colapinto'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/williams/2026williamscarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/williams/2026williamslogowhite.webp',
   },
   rb: {
     id: 'rb',
@@ -112,6 +126,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Laurent Mekies',
     championships: 0,
     drivers: ['tsunoda', 'hadjar', 'lawson'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/racingbulls/2026racingbullscarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/racingbulls/2026racingbullslogowhite.webp',
   },
   haas: {
     id: 'haas',
@@ -126,6 +142,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Ayao Komatsu',
     championships: 0,
     drivers: ['bearman', 'ocon'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/haasf1team/2026haasf1teamcarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/haasf1team/2026haasf1teamlogowhite.webp',
   },
   sauber: {
     id: 'sauber',
@@ -140,6 +158,8 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Mattia Binotto',
     championships: 0,
     drivers: ['hulkenberg', 'bortoleto'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/audi/2026audicarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/audi/2026audilogowhite.webp',
   },
 };
 
