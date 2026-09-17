@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Race, OpenF1Session, OpenF1Weather } from '@/lib/f1/types';
 import { CIRCUIT_EXTRAS } from '@/lib/f1/teams';
+import { getWeatherForCircuit, OpenMeteoWeather } from '@/lib/f1/openmeteo';
 import {
   Clock,
   MapPin,
@@ -10,6 +11,7 @@ import {
   Wind,
   Droplets,
   Thermometer,
+  CloudRain,
   ChevronRight,
   ShieldAlert,
   Gauge,
@@ -36,6 +38,17 @@ export default function HeroLiveHub({
   onNavigateTab,
   onToggleGlance,
 }: HeroLiveHubProps) {
+  const [ambientWeather, setAmbientWeather] = useState<OpenMeteoWeather | null>(null);
+
+  useEffect(() => {
+    const circuitId = nextRace?.Circuit?.circuitId;
+    const lat = nextRace?.Circuit?.Location?.lat;
+    const lng = nextRace?.Circuit?.Location?.long;
+
+    getWeatherForCircuit(circuitId, lat, lng).then((data) => {
+      setAmbientWeather(data);
+    });
+  }, [nextRace]);
   // Countdown Timer State
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
@@ -43,12 +56,14 @@ export default function HeroLiveHub({
     minutes: number;
     seconds: number;
     isPast: boolean;
+    isInProgress: boolean;
   }>({
     days: 0,
     hours: 0,
     minutes: 0,
     seconds: 0,
     isPast: false,
+    isInProgress: false,
   });
 
   useEffect(() => {
@@ -59,13 +74,20 @@ export default function HeroLiveHub({
       : `${nextRace.date}T13:00:00Z`;
 
     const targetTime = new Date(targetDateStr).getTime();
+    const raceEndTime = targetTime + 4 * 60 * 60 * 1000;
+    const fp1Time = targetTime - 48 * 60 * 60 * 1000;
 
     const updateCountdown = () => {
       const now = new Date().getTime();
       const diff = targetTime - now;
 
+      if (now >= fp1Time && now <= raceEndTime) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isPast: true, isInProgress: true });
+        return;
+      }
+
       if (diff <= 0) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isPast: true });
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, isPast: true, isInProgress: false });
         return;
       }
 
@@ -74,7 +96,7 @@ export default function HeroLiveHub({
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-      setTimeLeft({ days, hours, minutes, seconds, isPast: false });
+      setTimeLeft({ days, hours, minutes, seconds, isPast: false, isInProgress: false });
     };
 
     updateCountdown();
@@ -158,7 +180,7 @@ export default function HeroLiveHub({
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-hud font-bold tracking-wider text-[var(--text-muted)] uppercase flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-[var(--accent-f1-red)]" />
-                {timeLeft.isPast ? 'GRAND PRIX IN PROGRESS' : 'LIGHTS OUT COUNTDOWN'}
+                {timeLeft.isInProgress ? 'LIVE GRAND PRIX WEEKEND IN PROGRESS' : timeLeft.isPast ? 'GRAND PRIX COMPLETED' : 'LIGHTS OUT COUNTDOWN'}
               </span>
               <span className="text-[11px] text-[var(--text-muted)] font-mono-num">
                 {useLocalTime ? 'Local Sync' : 'Track GMT'}
@@ -297,26 +319,46 @@ export default function HeroLiveHub({
               </div>
             </div>
 
-            {/* Weather telemetry snippet */}
+            {/* Weather telemetry & ambient forecast widget */}
             <div className="pt-2 border-t border-[var(--border-subtle)]">
               <div className="text-[11px] font-hud font-semibold text-[var(--text-muted)] uppercase mb-2 flex items-center justify-between">
-                <span>TRACK CONDITIONS (CIRCUIT SENSORS)</span>
-                <span className="text-emerald-400 text-[10px]">LIVE SENSORS</span>
+                <span>
+                  {weather?.track_temperature
+                    ? 'TRACK CONDITIONS (OPENF1 SENSORS)'
+                    : 'AMBIENT FORECAST (OPEN-METEO)'}
+                </span>
+                <span className={weather?.track_temperature ? 'text-emerald-400 text-[10px]' : 'text-blue-400 text-[10px]'}>
+                  {weather?.track_temperature ? 'LIVE SENSORS' : 'REAL-TIME METEO'}
+                </span>
               </div>
               <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                <div className="flex flex-col items-center bg-[var(--bg-secondary)] p-2 rounded-lg border border-[var(--border-subtle)]">
-                  <Thermometer className="w-3.5 h-3.5 text-amber-400 mb-0.5" />
-                  <span className="text-[10px] text-[var(--text-muted)]">Track</span>
-                  <span className="font-mono-num font-bold">
-                    {weather?.track_temperature ? `${weather.track_temperature.toFixed(1)}°C` : '42.5°C'}
-                  </span>
-                </div>
+                {weather?.track_temperature ? (
+                  <div className="flex flex-col items-center bg-[var(--bg-secondary)] p-2 rounded-lg border border-[var(--border-subtle)]">
+                    <Thermometer className="w-3.5 h-3.5 text-amber-400 mb-0.5" />
+                    <span className="text-[10px] text-[var(--text-muted)]">Track Temp</span>
+                    <span className="font-mono-num font-bold">
+                      {weather.track_temperature.toFixed(1)}°C
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center bg-[var(--bg-secondary)] p-2 rounded-lg border border-[var(--border-subtle)]">
+                    <CloudRain className="w-3.5 h-3.5 text-cyan-400 mb-0.5" />
+                    <span className="text-[10px] text-[var(--text-muted)]">Rain Prob</span>
+                    <span className="font-mono-num font-bold">
+                      {ambientWeather ? `${ambientWeather.precipitationProbability}%` : '--'}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex flex-col items-center bg-[var(--bg-secondary)] p-2 rounded-lg border border-[var(--border-subtle)]">
                   <Flame className="w-3.5 h-3.5 text-orange-400 mb-0.5" />
-                  <span className="text-[10px] text-[var(--text-muted)]">Air</span>
+                  <span className="text-[10px] text-[var(--text-muted)]">Air Temp</span>
                   <span className="font-mono-num font-bold">
-                    {weather?.air_temperature ? `${weather.air_temperature.toFixed(1)}°C` : '31.4°C'}
+                    {weather?.air_temperature
+                      ? `${weather.air_temperature.toFixed(1)}°C`
+                      : ambientWeather
+                      ? `${ambientWeather.airTemperature.toFixed(1)}°C`
+                      : '--'}
                   </span>
                 </div>
 
@@ -324,7 +366,11 @@ export default function HeroLiveHub({
                   <Droplets className="w-3.5 h-3.5 text-cyan-400 mb-0.5" />
                   <span className="text-[10px] text-[var(--text-muted)]">Humidity</span>
                   <span className="font-mono-num font-bold">
-                    {weather?.humidity ? `${weather.humidity.toFixed(0)}%` : '68%'}
+                    {weather?.humidity
+                      ? `${weather.humidity.toFixed(0)}%`
+                      : ambientWeather
+                      ? `${ambientWeather.humidity}%`
+                      : '--'}
                   </span>
                 </div>
 
@@ -332,7 +378,11 @@ export default function HeroLiveHub({
                   <Wind className="w-3.5 h-3.5 text-blue-400 mb-0.5" />
                   <span className="text-[10px] text-[var(--text-muted)]">Wind</span>
                   <span className="font-mono-num font-bold">
-                    {weather?.wind_speed ? `${weather.wind_speed.toFixed(1)} m/s` : '2.1 m/s'}
+                    {weather?.wind_speed
+                      ? `${weather.wind_speed.toFixed(1)} m/s`
+                      : ambientWeather
+                      ? `${ambientWeather.windSpeed.toFixed(1)} km/h`
+                      : '--'}
                   </span>
                 </div>
               </div>

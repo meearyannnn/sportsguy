@@ -14,8 +14,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Frédéric Vasseur',
     championships: 16,
     drivers: ['leclerc', 'hamilton', 'sainz'],
-    academyDrivers: ['Dino Beganovic (F2)', 'Tuukka Taponen (F3)', 'Maya Weug (F1 Academy)', 'Aurelia Nobels (F1 Academy)'],
-    fastestSeasonPitStop: { time: '2.14s', round: 'Round 12 (Spa)', driver: 'Charles Leclerc' },
   },
   mclaren: {
     id: 'mclaren',
@@ -30,8 +28,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Andrea Stella',
     championships: 8,
     drivers: ['norris', 'piastri'],
-    academyDrivers: ['Gabriel Bortoleto (F2)', 'Bianca Bustamante (F1 Academy)', 'Martinius Stenshorne (F3)', 'Alex Dunne (F3)'],
-    fastestSeasonPitStop: { time: '1.95s', round: 'Round 14 (Zandvoort)', driver: 'Lando Norris' },
   },
   mercedes: {
     id: 'mercedes',
@@ -46,8 +42,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Toto Wolff',
     championships: 8,
     drivers: ['russell', 'antonelli'],
-    academyDrivers: ['Andrea Kimi Antonelli (F2)', 'Doriane Pin (F1 Academy)', 'Paul Aron (F2)', 'Alex Powell (F4)'],
-    fastestSeasonPitStop: { time: '2.09s', round: 'Round 9 (Silverstone)', driver: 'George Russell' },
   },
   red_bull: {
     id: 'red_bull',
@@ -62,8 +56,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Christian Horner',
     championships: 6,
     drivers: ['max_verstappen', 'lawson', 'perez'],
-    academyDrivers: ['Isack Hadjar (F2)', 'Arvid Lindblad (F2)', 'Pepe Martí (F2)', 'Oliver Goethe (F2)', 'Tim Tramnitz (F3)'],
-    fastestSeasonPitStop: { time: '1.90s', round: 'Round 5 (Shanghai)', driver: 'Max Verstappen' },
   },
   aston_martin: {
     id: 'aston_martin',
@@ -78,8 +70,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Mike Krack',
     championships: 0,
     drivers: ['alonso', 'stroll'],
-    academyDrivers: ['Jak Crawford (F2)', 'Tina Hausmann (F1 Academy)', 'Mari Boya (F3)'],
-    fastestSeasonPitStop: { time: '2.21s', round: 'Round 8 (Barcelona)', driver: 'Fernando Alonso' },
   },
   alpine: {
     id: 'alpine',
@@ -94,8 +84,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Oliver Oakes',
     championships: 2,
     drivers: ['gasly', 'doohan'],
-    academyDrivers: ['Abbi Pulling (F1 Academy)', 'Kush Maini (F2)', 'Gabriele Minì (F2)', 'Victor Martins (F2)'],
-    fastestSeasonPitStop: { time: '2.27s', round: 'Round 10 (Hungaroring)', driver: 'Pierre Gasly' },
   },
   williams: {
     id: 'williams',
@@ -110,8 +98,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'James Vowles',
     championships: 9,
     drivers: ['albon', 'sainz', 'colapinto'],
-    academyDrivers: ['Franco Colapinto (F2)', 'Luke Browning (F2)', 'Lia Block (F1 Academy)', 'Zak O\'Sullivan (F2)'],
-    fastestSeasonPitStop: { time: '2.19s', round: 'Round 4 (Suzuka)', driver: 'Alex Albon' },
   },
   rb: {
     id: 'rb',
@@ -126,8 +112,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Laurent Mekies',
     championships: 0,
     drivers: ['tsunoda', 'hadjar', 'lawson'],
-    academyDrivers: ['Ayumu Iwasa (Super Formula)', 'Enzo Deligny (FRECA)'],
-    fastestSeasonPitStop: { time: '2.24s', round: 'Round 7 (Monaco)', driver: 'Yuki Tsunoda' },
   },
   haas: {
     id: 'haas',
@@ -142,8 +126,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Ayao Komatsu',
     championships: 0,
     drivers: ['bearman', 'ocon'],
-    academyDrivers: ['Chloe Chambers (F1 Academy)'],
-    fastestSeasonPitStop: { time: '2.38s', round: 'Round 11 (Red Bull Ring)', driver: 'Nico Hulkenberg' },
   },
   sauber: {
     id: 'sauber',
@@ -158,8 +140,6 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     teamPrincipal: 'Mattia Binotto',
     championships: 0,
     drivers: ['hulkenberg', 'bortoleto'],
-    academyDrivers: ['Zane Maloney (F2)', 'Carrie Schreiner (F1 Academy)'],
-    fastestSeasonPitStop: { time: '2.44s', round: 'Round 13 (Monza)', driver: 'Valtteri Bottas' },
   },
 };
 
@@ -379,6 +359,14 @@ export const CIRCUIT_EXTRAS: Record<
     recordHolder: 'Charles Leclerc',
     recordYear: '2024',
   },
+  australia: {
+    corners: 14,
+    drsZones: 4,
+    lengthKm: 5.278,
+    lapRecord: '1:19.813',
+    recordHolder: 'Charles Leclerc',
+    recordYear: '2024',
+  },
   bahrain: {
     corners: 15,
     drsZones: 3,
@@ -395,13 +383,29 @@ export const CIRCUIT_EXTRAS: Record<
     recordHolder: 'Michael Schumacher',
     recordYear: '2004',
   },
+  china: {
+    corners: 16,
+    drsZones: 2,
+    lengthKm: 5.451,
+    lapRecord: '1:32.238',
+    recordHolder: 'Michael Schumacher',
+    recordYear: '2004',
+  },
   suzuka: {
     corners: 18,
     drsZones: 1,
     lengthKm: 5.807,
-    lapRecord: '1:30.983',
-    recordHolder: 'Lewis Hamilton',
-    recordYear: '2019',
+    lapRecord: '1:30.965',
+    recordHolder: 'Kimi Antonelli',
+    recordYear: '2025',
+  },
+  japan: {
+    corners: 18,
+    drsZones: 1,
+    lengthKm: 5.807,
+    lapRecord: '1:30.965',
+    recordHolder: 'Kimi Antonelli',
+    recordYear: '2025',
   },
   miami: {
     corners: 19,
@@ -410,6 +414,22 @@ export const CIRCUIT_EXTRAS: Record<
     lapRecord: '1:29.708',
     recordHolder: 'Max Verstappen',
     recordYear: '2023',
+  },
+  villeneuve: {
+    corners: 14,
+    drsZones: 3,
+    lengthKm: 4.361,
+    lapRecord: '1:13.078',
+    recordHolder: 'Valtteri Bottas',
+    recordYear: '2019',
+  },
+  canada: {
+    corners: 14,
+    drsZones: 3,
+    lengthKm: 4.361,
+    lapRecord: '1:13.078',
+    recordHolder: 'Valtteri Bottas',
+    recordYear: '2019',
   },
   monaco: {
     corners: 19,
@@ -422,18 +442,34 @@ export const CIRCUIT_EXTRAS: Record<
   catalunya: {
     corners: 14,
     drsZones: 2,
-    lengthKm: 4.657,
-    lapRecord: '1:16.330',
-    recordHolder: 'Max Verstappen',
-    recordYear: '2023',
+    lengthKm: 5.414,
+    lapRecord: '1:35.587',
+    recordHolder: 'George Russell',
+    recordYear: '2026',
+  },
+  spain: {
+    corners: 14,
+    drsZones: 2,
+    lengthKm: 5.414,
+    lapRecord: '1:35.587',
+    recordHolder: 'George Russell',
+    recordYear: '2026',
   },
   red_bull_ring: {
     corners: 10,
     drsZones: 3,
-    lengthKm: 4.318,
-    lapRecord: '1:05.619',
-    recordHolder: 'Carlos Sainz',
-    recordYear: '2020',
+    lengthKm: 4.326,
+    lapRecord: '1:07.924',
+    recordHolder: 'Oscar Piastri',
+    recordYear: '2025',
+  },
+  austria: {
+    corners: 10,
+    drsZones: 3,
+    lengthKm: 4.326,
+    lapRecord: '1:07.924',
+    recordHolder: 'Oscar Piastri',
+    recordYear: '2025',
   },
   silverstone: {
     corners: 18,
@@ -441,6 +477,30 @@ export const CIRCUIT_EXTRAS: Record<
     lengthKm: 5.891,
     lapRecord: '1:27.097',
     recordHolder: 'Max Verstappen',
+    recordYear: '2020',
+  },
+  great_britain: {
+    corners: 18,
+    drsZones: 2,
+    lengthKm: 5.891,
+    lapRecord: '1:27.097',
+    recordHolder: 'Max Verstappen',
+    recordYear: '2020',
+  },
+  hungaroring: {
+    corners: 14,
+    drsZones: 2,
+    lengthKm: 4.381,
+    lapRecord: '1:16.627',
+    recordHolder: 'Lewis Hamilton',
+    recordYear: '2020',
+  },
+  hungary: {
+    corners: 14,
+    drsZones: 2,
+    lengthKm: 4.381,
+    lapRecord: '1:16.627',
+    recordHolder: 'Lewis Hamilton',
     recordYear: '2020',
   },
   spa: {
@@ -451,21 +511,77 @@ export const CIRCUIT_EXTRAS: Record<
     recordHolder: 'Sergio Perez',
     recordYear: '2024',
   },
+  belgium: {
+    corners: 19,
+    drsZones: 2,
+    lengthKm: 7.004,
+    lapRecord: '1:44.701',
+    recordHolder: 'Sergio Perez',
+    recordYear: '2024',
+  },
+  zandvoort: {
+    corners: 14,
+    drsZones: 2,
+    lengthKm: 4.259,
+    lapRecord: '1:11.097',
+    recordHolder: 'Lewis Hamilton',
+    recordYear: '2021',
+  },
+  netherlands: {
+    corners: 14,
+    drsZones: 2,
+    lengthKm: 4.259,
+    lapRecord: '1:11.097',
+    recordHolder: 'Lewis Hamilton',
+    recordYear: '2021',
+  },
   monza: {
     corners: 11,
     drsZones: 2,
     lengthKm: 5.793,
-    lapRecord: '1:21.046',
-    recordHolder: 'Rubens Barrichello',
-    recordYear: '2004',
+    lapRecord: '1:20.901',
+    recordHolder: 'Lando Norris',
+    recordYear: '2025',
+  },
+  italy: {
+    corners: 11,
+    drsZones: 2,
+    lengthKm: 5.793,
+    lapRecord: '1:20.901',
+    recordHolder: 'Lando Norris',
+    recordYear: '2025',
+  },
+  baku: {
+    corners: 20,
+    drsZones: 2,
+    lengthKm: 6.003,
+    lapRecord: '1:43.009',
+    recordHolder: 'Charles Leclerc',
+    recordYear: '2019',
+  },
+  azerbaijan: {
+    corners: 20,
+    drsZones: 2,
+    lengthKm: 6.003,
+    lapRecord: '1:43.009',
+    recordHolder: 'Charles Leclerc',
+    recordYear: '2019',
   },
   marina_bay: {
     corners: 19,
     drsZones: 4,
-    lengthKm: 4.940,
-    lapRecord: '1:34.486',
-    recordHolder: 'Daniel Ricciardo',
-    recordYear: '2024',
+    lengthKm: 4.927,
+    lapRecord: '1:33.808',
+    recordHolder: 'Lewis Hamilton',
+    recordYear: '2025',
+  },
+  singapore: {
+    corners: 19,
+    drsZones: 4,
+    lengthKm: 4.927,
+    lapRecord: '1:33.808',
+    recordHolder: 'Lewis Hamilton',
+    recordYear: '2025',
   },
   americas: {
     corners: 20,
@@ -475,6 +591,30 @@ export const CIRCUIT_EXTRAS: Record<
     recordHolder: 'Charles Leclerc',
     recordYear: '2019',
   },
+  united_states: {
+    corners: 20,
+    drsZones: 2,
+    lengthKm: 5.513,
+    lapRecord: '1:36.169',
+    recordHolder: 'Charles Leclerc',
+    recordYear: '2019',
+  },
+  rodriguez: {
+    corners: 17,
+    drsZones: 3,
+    lengthKm: 4.304,
+    lapRecord: '1:17.774',
+    recordHolder: 'Valtteri Bottas',
+    recordYear: '2021',
+  },
+  mexico: {
+    corners: 17,
+    drsZones: 3,
+    lengthKm: 4.304,
+    lapRecord: '1:17.774',
+    recordHolder: 'Valtteri Bottas',
+    recordYear: '2021',
+  },
   interlagos: {
     corners: 15,
     drsZones: 2,
@@ -482,6 +622,46 @@ export const CIRCUIT_EXTRAS: Record<
     lapRecord: '1:10.540',
     recordHolder: 'Valtteri Bottas',
     recordYear: '2018',
+  },
+  brazil: {
+    corners: 15,
+    drsZones: 2,
+    lengthKm: 4.309,
+    lapRecord: '1:10.540',
+    recordHolder: 'Valtteri Bottas',
+    recordYear: '2018',
+  },
+  vegas: {
+    corners: 17,
+    drsZones: 2,
+    lengthKm: 6.201,
+    lapRecord: '1:33.365',
+    recordHolder: 'Max Verstappen',
+    recordYear: '2025',
+  },
+  las_vegas: {
+    corners: 17,
+    drsZones: 2,
+    lengthKm: 6.201,
+    lapRecord: '1:33.365',
+    recordHolder: 'Max Verstappen',
+    recordYear: '2025',
+  },
+  losail: {
+    corners: 16,
+    drsZones: 1,
+    lengthKm: 5.419,
+    lapRecord: '1:22.384',
+    recordHolder: 'Lando Norris',
+    recordYear: '2024',
+  },
+  qatar: {
+    corners: 16,
+    drsZones: 1,
+    lengthKm: 5.419,
+    lapRecord: '1:22.384',
+    recordHolder: 'Lando Norris',
+    recordYear: '2024',
   },
   yas_marina: {
     corners: 16,
@@ -491,4 +671,75 @@ export const CIRCUIT_EXTRAS: Record<
     recordHolder: 'Max Verstappen',
     recordYear: '2021',
   },
+  abu_dhabi: {
+    corners: 16,
+    drsZones: 2,
+    lengthKm: 5.281,
+    lapRecord: '1:26.103',
+    recordHolder: 'Max Verstappen',
+    recordYear: '2021',
+  },
+  jeddah: {
+    corners: 27,
+    drsZones: 3,
+    lengthKm: 6.174,
+    lapRecord: '1:30.734',
+    recordHolder: 'Lewis Hamilton',
+    recordYear: '2021',
+  },
+  saudi_arabia: {
+    corners: 27,
+    drsZones: 3,
+    lengthKm: 6.174,
+    lapRecord: '1:30.734',
+    recordHolder: 'Lewis Hamilton',
+    recordYear: '2021',
+  },
+  imola: {
+    corners: 19,
+    drsZones: 1,
+    lengthKm: 4.909,
+    lapRecord: '1:15.484',
+    recordHolder: 'Lewis Hamilton',
+    recordYear: '2020',
+  },
+  emilia_romagna: {
+    corners: 19,
+    drsZones: 1,
+    lengthKm: 4.909,
+    lapRecord: '1:15.484',
+    recordHolder: 'Lewis Hamilton',
+    recordYear: '2020',
+  },
 };
+
+export function getNationalityFlag(nationalityOrCountry: string | undefined | null): string {
+  if (!nationalityOrCountry) return '🏁';
+  const norm = nationalityOrCountry.toLowerCase().trim();
+
+  if (norm.includes('monaco') || norm.includes('monegasque') || norm === 'mco') return '🇲🇨';
+  if (norm.includes('dutch') || norm.includes('netherlands') || norm === 'nld' || norm === 'ned') return '🇳🇱';
+  if (norm.includes('british') || norm.includes('united kingdom') || norm.includes('uk') || norm === 'gbr') return '🇬🇧';
+  if (norm.includes('italian') || norm.includes('italy') || norm === 'ita') return '🇮🇹';
+  if (norm.includes('spanish') || norm.includes('spain') || norm === 'esp') return '🇪🇸';
+  if (norm.includes('australian') || norm.includes('australia') || norm === 'aus') return '🇦🇺';
+  if (norm.includes('french') || norm.includes('france') || norm === 'fra') return '🇫🇷';
+  if (norm.includes('german') || norm.includes('germany') || norm === 'deu' || norm === 'ger') return '🇩🇪';
+  if (norm.includes('japanese') || norm.includes('japan') || norm === 'jpn') return '🇯🇵';
+  if (norm.includes('mexican') || norm.includes('mexico') || norm === 'mex') return '🇲🇽';
+  if (norm.includes('canadian') || norm.includes('canada') || norm === 'can') return '🇨🇦';
+  if (norm.includes('thai') || norm.includes('thailand') || norm === 'tha') return '🇹🇭';
+  if (norm.includes('american') || norm.includes('usa') || norm.includes('united states')) return '🇺🇸';
+  if (norm.includes('argentine') || norm.includes('argentina') || norm === 'arg') return '🇦🇷';
+  if (norm.includes('brazilian') || norm.includes('brazil') || norm === 'bra') return '🇧🇷';
+  if (norm.includes('finnish') || norm.includes('finland') || norm === 'fin') return '🇫🇮';
+  if (norm.includes('danish') || norm.includes('denmark') || norm === 'dnk' || norm === 'den') return '🇩🇰';
+  if (norm.includes('chinese') || norm.includes('china') || norm === 'chn') return '🇨🇳';
+  if (norm.includes('zealand') || norm === 'nzl') return '🇳🇿';
+  if (norm.includes('swiss') || norm.includes('switzerland') || norm === 'sui' || norm === 'che') return '🇨🇭';
+  if (norm.includes('austrian') || norm.includes('austria') || norm === 'aut') return '🇦🇹';
+  if (norm.includes('belgian') || norm.includes('belgium') || norm === 'bel') return '🇧🇪';
+
+  return '🏁';
+}
+

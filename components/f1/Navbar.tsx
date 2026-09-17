@@ -110,8 +110,8 @@ export default function Navbar({
   }, []);
 
   const secondaryTabs: Array<{ id: NavTab; label: string; icon: any }> = [
+    { id: 'junior', label: 'Feeder Series (F2 / F3)', icon: GraduationCap },
     { id: 'news', label: 'News Wire', icon: Newspaper },
-    { id: 'junior', label: 'Junior Series (F2/F3/Academy)', icon: GraduationCap },
     { id: 'pitcrew', label: 'Pit Crew Championship', icon: Wrench },
     { id: 'testing', label: 'Pre-Season Testing', icon: Gauge },
     { id: 'analytics', label: 'Intelligence', icon: Calculator },

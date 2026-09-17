@@ -42,8 +42,8 @@ export default function StorytellingHub({ nextRace, standings, onSelectDriver }:
   const ptsA = parseFloat(driverA?.points || '100');
   const ptsB = parseFloat(driverB?.points || '80');
 
-  const trajectoryA = rounds.map((r) => Math.round((ptsA / 14) * r + Math.sin(r) * 8));
-  const trajectoryB = rounds.map((r) => Math.round((ptsB / 14) * r + Math.cos(r) * 6));
+  const trajectoryA = rounds.map((r) => Math.round((ptsA / 14) * r));
+  const trajectoryB = rounds.map((r) => Math.round((ptsB / 14) * r));
 
   const maxProgression = Math.max(ptsA, ptsB, 150);
   const svgWidth = 600;

@@ -96,6 +96,16 @@ export interface RaceResult {
   };
 }
 
+export interface QualifyingResult {
+  number: string;
+  position: string;
+  Driver: Driver;
+  Constructor: Constructor;
+  Q1?: string;
+  Q2?: string;
+  Q3?: string;
+}
+
 export interface JolpicaResponse<T> {
   MRData: {
     xmlns: string;
@@ -223,10 +233,4 @@ export interface TeamMeta {
   teamPrincipal: string;
   championships: number;
   drivers: string[];
-  academyDrivers?: string[];
-  fastestSeasonPitStop?: {
-    time: string;
-    round: string;
-    driver: string;
-  };
 }

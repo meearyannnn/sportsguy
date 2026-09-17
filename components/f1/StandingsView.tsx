@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DriverStanding, ConstructorStanding } from '@/lib/f1/types';
-import { getTeamMeta, DRIVER_DETAILS } from '@/lib/f1/teams';
+import { getTeamMeta, DRIVER_DETAILS, getNationalityFlag } from '@/lib/f1/teams';
 import PaceTrace from '@/components/f1/PaceTrace';
 import DriverAvatar from '@/components/f1/DriverAvatar';
 import DriverIdentityCard from '@/components/f1/DriverIdentityCard';
@@ -41,7 +41,7 @@ export default function StandingsView({
             </span>
             <span className="text-[var(--text-muted)] text-xs">•</span>
             <span className="text-xs font-mono-num text-[var(--text-muted)]">
-              2026 WORLD CHAMPIONSHIP
+              2024 WORLD CHAMPIONSHIP
             </span>
             <span className="text-[var(--text-muted)] text-xs hidden sm:inline">•</span>
             <FreshnessBadge
@@ -155,7 +155,9 @@ export default function StandingsView({
                           {standing.Driver.givenName}{' '}
                           <span className="font-black">{standing.Driver.familyName}</span>
                         </span>
-                        <span className="text-xs shrink-0">{extra?.countryFlag || ''}</span>
+                        <span className="text-xs shrink-0">
+                          {getNationalityFlag(standing.Driver.nationality) || extra?.countryFlag || '🏁'}
+                        </span>
                       </div>
                       <div className="text-[10px] text-[var(--text-muted)] font-medium truncate">
                         {team.name}

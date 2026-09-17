@@ -23,6 +23,7 @@ interface PaddockViewProps {
   constructorStandings: ConstructorStanding[];
   onSelectDriver?: (driverId: string) => void;
   onNavigateTab?: (tab: NavTab) => void;
+  initialSubTab?: 'h2h' | 'constructors' | 'drivers';
 }
 
 export default function PaddockView({
@@ -30,8 +31,9 @@ export default function PaddockView({
   constructorStandings,
   onSelectDriver,
   onNavigateTab,
+  initialSubTab = 'drivers',
 }: PaddockViewProps) {
-  const [subTab, setSubTab] = useState<'h2h' | 'constructors' | 'drivers'>('h2h');
+  const [subTab, setSubTab] = useState<'h2h' | 'constructors' | 'drivers'>(initialSubTab);
 
   // Head to Head Driver selection
   const [driverAId, setDriverAId] = useState<string>(
@@ -399,55 +401,6 @@ export default function PaddockView({
                   <div className="flex justify-between">
                     <span className="text-[var(--text-muted)]">Team Principal:</span>
                     <span className="font-medium">{team.teamPrincipal}</span>
-                  </div>
-                </div>
-
-                {/* Highlighted Fastest Season Pit Stop */}
-                {team.fastestSeasonPitStop && (
-                  <div className="flex items-center justify-between p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-xs">
-                    <span className="flex items-center gap-1.5 text-[10px] font-hud font-bold uppercase text-[var(--accent-f1-red)]">
-                      <Wrench className="w-3 h-3" />
-                      Fastest Stop:
-                    </span>
-                    <span className="font-mono-num font-black text-emerald-400">
-                      {team.fastestSeasonPitStop.time} ({team.fastestSeasonPitStop.round})
-                    </span>
-                  </div>
-                )}
-
-                {/* Junior Driver Academy Pipeline Roster */}
-                <div className="space-y-1.5 pt-1 border-t border-[var(--border-subtle)]">
-                  <div className="flex items-center justify-between text-[10px] font-hud font-bold uppercase text-[var(--text-muted)]">
-                    <span className="flex items-center gap-1">
-                      <GraduationCap className="w-3 h-3 text-amber-400" />
-                      Junior Pipeline ({team.academyDrivers?.length || 0})
-                    </span>
-                    {onNavigateTab && (
-                      <button
-                        onClick={() => onNavigateTab('junior')}
-                        className="text-[var(--accent-f1-red)] hover:underline cursor-pointer flex items-center gap-0.5"
-                      >
-                        VIEW JUNIOR DRIVERS
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {team.academyDrivers && team.academyDrivers.length > 0 ? (
-                      team.academyDrivers.map((drv) => (
-                        <span
-                          key={drv}
-                          onClick={() => onNavigateTab && onNavigateTab('junior')}
-                          className="px-2 py-0.5 rounded-sm text-[10px] font-hud font-bold bg-[var(--bg-tertiary)] hover:bg-[var(--border-hover)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-white transition-colors cursor-pointer"
-                          title="Click to view in Junior Feeder Series"
-                        >
-                          {drv}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-[10px] text-[var(--text-muted)] italic">
-                        No junior drivers declared
-                      </span>
-                    )}
                   </div>
                 </div>
 

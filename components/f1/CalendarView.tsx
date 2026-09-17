@@ -166,7 +166,8 @@ export default function CalendarView({
           const isNext = race.round === String(nextRaceIndex + 1);
           const isExpanded = expandedRound === race.round;
           const circuitId = race.Circuit?.circuitId;
-          const circuitInfo = CIRCUIT_EXTRAS[circuitId] || {
+          const countryKey = race.Circuit?.Location?.country?.toLowerCase().replace(/\s+/g, '_') || '';
+          const circuitInfo = CIRCUIT_EXTRAS[circuitId] || CIRCUIT_EXTRAS[countryKey] || {
             corners: 16,
             drsZones: 2,
             lengthKm: 5.3,

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { NewsItem, NewsTag, SecondarySource } from '@/lib/f1/newsTypes';
+import { fetchF1ComOfficialNews } from '@/lib/f1/f1ComScraper';
 
 interface CachedNews {
   items: NewsItem[];
@@ -58,7 +59,7 @@ function classifyTag(title: string, summary: string, pubDate: string): { tag: Ne
   const combined = `${title} ${summary}`.toLowerCase();
   const now = Date.now();
   const publishedAt = new Date(pubDate).getTime();
-  const isRecent = !isNaN(publishedAt) && now - publishedAt < 90 * 60 * 1000; // Under 90 mins
+  const isRecent = !isNaN(publishedAt) && now - publishedAt < 90 * 60 * 1000;
 
   const isBreakingKeyword =
     combined.includes('breaking') ||
@@ -217,7 +218,7 @@ export async function GET() {
     return NextResponse.json(
       {
         items: memoryCache.items,
-        sourceCount: RSS_FEEDS.length,
+        sourceCount: RSS_FEEDS.length + 1,
         cached: true,
         updatedAt: new Date(memoryCache.timestamp).toISOString(),
       },
@@ -229,7 +230,10 @@ export async function GET() {
     );
   }
 
-  const fetchPromises = RSS_FEEDS.map(async (feed) => {
+  // Fetch official Formula1.com articles alongside top RSS feeds
+  const f1ComPromise = fetchF1ComOfficialNews().catch(() => []);
+
+  const rssPromises = RSS_FEEDS.map(async (feed) => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4500);
@@ -249,13 +253,12 @@ export async function GET() {
       const xml = await res.text();
       return parseRssXml(xml, feed.name);
     } catch {
-      // Graceful degradation: drop failed feeds silently
       return [];
     }
   });
 
-  const feedResults = await Promise.all(fetchPromises);
-  const flatItems = feedResults.flat();
+  const [f1ComItems, ...rssResults] = await Promise.all([f1ComPromise, ...rssPromises]);
+  const flatItems = [...f1ComItems, ...rssResults.flat()];
 
   // Sort by pubDate descending
   flatItems.sort((a, b) => new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime());

@@ -14,6 +14,7 @@ import AskApexBar from '@/components/f1/AskApexBar';
 import NavigationTransition from '@/components/f1/NavigationTransition';
 import MorningDigest from '@/components/f1/MorningDigest';
 import { useMobileHistory } from '@/lib/f1/useMobileHistory';
+import { useF1RealtimeSync } from '@/lib/f1/useF1RealtimeSync';
 
 // Dynamic imports for heavy secondary views to minimize initial bundle size and boost Core Web Vitals
 const DynamicLoadingSkeleton = () => (
@@ -112,8 +113,9 @@ export default function ApexHome() {
   const [constructorStandings, setConstructorStandings] = useState<ConstructorStanding[]>([]);
   const [recentRace, setRecentRace] = useState<Race | null>(null);
   const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
-  const [selectedSeason, setSelectedSeason] = useState<string>('2026');
+  const [selectedSeason, setSelectedSeason] = useState<string>('current');
   const [selectedRound, setSelectedRound] = useState<string>('last');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string>('');
 
   // OpenF1 Live State
   const [latestSession, setLatestSession] = useState<OpenF1Session | null>(null);
@@ -135,7 +137,7 @@ export default function ApexHome() {
       const tabParam = urlParams.get('tab') as NavTab;
       if (
         tabParam &&
-        ['hub', 'calendar', 'standings', 'results', 'paddock', 'analytics', 'stories', 'archive', 'live', 'news'].includes(tabParam)
+        ['hub', 'calendar', 'standings', 'results', 'paddock', 'analytics', 'stories', 'archive', 'live', 'news', 'junior', 'testing', 'pitcrew', 'about'].includes(tabParam)
       ) {
         setActiveTab(tabParam);
       }
@@ -159,7 +161,6 @@ export default function ApexHome() {
         return;
       }
 
-      // Browser back/forward: play transition loader consistently without overriding restored scroll position
       setIsNavTransitioning(true);
       setActiveTab(targetTab);
     };
@@ -168,7 +169,7 @@ export default function ApexHome() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Fresh forward navigation (clicking nav items, links, cards)
+  // Fresh forward navigation
   const handleTabChange = (nextTab: NavTab) => {
     if (nextTab === activeTab) {
       window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
@@ -180,7 +181,6 @@ export default function ApexHome() {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     if (prefersReducedMotion) {
-      // Instant cut without animation: reset scroll immediately before setting tab
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       setActiveTab(nextTab);
       try {
@@ -189,10 +189,7 @@ export default function ApexHome() {
       return;
     }
 
-    // Start lights-out transition
     setIsNavTransitioning(true);
-
-    // During transition cover (at ~380ms), reset scroll to top before revealing new page
     setTimeout(() => {
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       setActiveTab(nextTab);
@@ -212,7 +209,7 @@ export default function ApexHome() {
     sessionName: latestSession?.session_name,
   });
 
-  // Respect user context: default to browser's prefers-color-scheme, remember manual override
+  // Respect user theme override
   useEffect(() => {
     try {
       const savedOverride = localStorage.getItem('apex_theme_override');
@@ -234,27 +231,7 @@ export default function ApexHome() {
         document.documentElement.classList.remove('dark');
         document.documentElement.classList.add('light');
       }
-
-      // Listen for OS scheme adjustments when user hasn't set manual override
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleSchemeChange = (e: MediaQueryListEvent) => {
-        if (!localStorage.getItem('apex_theme_override')) {
-          setIsDarkMode(e.matches);
-          if (e.matches) {
-            document.documentElement.classList.add('dark');
-            document.documentElement.classList.remove('light');
-          } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.classList.add('light');
-          }
-        }
-      };
-
-      mediaQuery.addEventListener('change', handleSchemeChange);
-      return () => mediaQuery.removeEventListener('change', handleSchemeChange);
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, []);
 
   // Apply saved personalization on load
@@ -268,7 +245,6 @@ export default function ApexHome() {
     }
   }, []);
 
-  // Toggle Theme with manual override saved
   const toggleTheme = () => {
     setIsDarkMode((prev) => {
       const next = !prev;
@@ -286,41 +262,40 @@ export default function ApexHome() {
     });
   };
 
-  // Toggle Timezone
   const toggleTimezone = () => {
     setUseLocalTime((prev) => !prev);
   };
-
-  // Initial Load
   const fetchAllData = async () => {
-    setIsLoading(true);
+    if (calendar.length === 0 && driverStandings.length === 0) {
+      setIsLoading(true);
+    }
     setErrorMsg(null);
     try {
-      const [calData, drvData, constData, openSession] = await Promise.all([
+      const [calData, drvData, constData, openSession, resultsData] = await Promise.all([
         getCalendar(selectedSeason),
         getDriverStandings(selectedSeason),
         getConstructorStandings(selectedSeason),
-        getLatestSession(),
+        getLatestSession().catch(() => null),
+        getRaceResults(selectedSeason, selectedRound).catch(() => ({ race: null, results: [] })),
       ]);
 
       setCalendar(calData);
       setDriverStandings(drvData);
       setConstructorStandings(constData);
       setLatestSession(openSession);
-
-      // Fetch Results for the chosen round
-      const resultsData = await getRaceResults(selectedSeason, selectedRound);
       setRecentRace(resultsData.race);
       setRaceResults(resultsData.results);
+      setLastUpdatedAt(new Date().toISOString());
 
-      // Weather & Intervals if session exists
+      // Secondary live session metrics in background
       if (openSession?.session_key) {
-        const [wData, iData] = await Promise.all([
-          getSessionWeather(openSession.session_key),
-          getSessionIntervals(openSession.session_key),
-        ]);
-        setWeather(wData);
-        setIntervals(iData);
+        Promise.all([
+          getSessionWeather(openSession.session_key).catch(() => null),
+          getSessionIntervals(openSession.session_key).catch(() => []),
+        ]).then(([wData, iData]) => {
+          setWeather(wData);
+          setIntervals(iData);
+        });
       }
     } catch (err: any) {
       console.error('Failed to load F1 data:', err);
@@ -334,6 +309,44 @@ export default function ApexHome() {
   useEffect(() => {
     fetchAllData();
   }, [selectedSeason]);
+
+  // Real-time automatic background synchronization
+  useF1RealtimeSync({
+    onSyncTelemetry: async () => {
+      try {
+        const session = await getLatestSession();
+        if (session) {
+          setLatestSession(session);
+          if (session.session_key) {
+            const [wData, iData] = await Promise.all([
+              getSessionWeather(session.session_key).catch(() => null),
+              getSessionIntervals(session.session_key).catch(() => []),
+            ]);
+            if (wData) setWeather(wData);
+            if (iData && iData.length > 0) setIntervals(iData);
+          }
+        }
+      } catch (e) {
+        console.warn('Background telemetry sync:', e);
+      }
+    },
+    onSyncStandings: async () => {
+      try {
+        const [drvData, constData] = await Promise.all([
+          getDriverStandings(selectedSeason),
+          getConstructorStandings(selectedSeason),
+        ]);
+        if (drvData && drvData.length > 0) setDriverStandings(drvData);
+        if (constData && constData.length > 0) setConstructorStandings(constData);
+        setLastUpdatedAt(new Date().toISOString());
+      } catch (e) {
+        console.warn('Background standings sync:', e);
+      }
+    },
+    telemetryIntervalMs: 15000,
+    standingsIntervalMs: 60000,
+    enabled: !isLoading,
+  });
 
   // When round changes: reset viewport to top so user lands at top of classifications
   const handleSelectRound = async (round: string) => {
@@ -439,68 +452,6 @@ export default function ApexHome() {
                   onViewResults={() => handleTabChange('results')}
                 />
 
-                {/* Quick Derived Insights Shortcut Banner */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div
-                    onClick={() => handleTabChange('junior')}
-                    className="p-4 rounded-xl bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-amber-500 transition-all cursor-pointer group"
-                  >
-                    <div className="text-[10px] font-hud font-bold uppercase tracking-wider text-amber-400">
-                      ROAD TO F1
-                    </div>
-                    <div className="font-hud font-black text-base uppercase text-[var(--text-primary)] group-hover:text-white mt-1">
-                      Junior Feeder Series →
-                    </div>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                      F2, F3 & F1 Academy standings, race results & F1 talent pipeline
-                    </p>
-                  </div>
-
-                  <div
-                    onClick={() => handleTabChange('pitcrew')}
-                    className="p-4 rounded-xl bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-emerald-500 transition-all cursor-pointer group"
-                  >
-                    <div className="text-[10px] font-hud font-bold uppercase tracking-wider text-emerald-400">
-                      DHL TROPHY
-                    </div>
-                    <div className="font-hud font-black text-base uppercase text-[var(--text-primary)] group-hover:text-white mt-1">
-                      Pit Crew Championship →
-                    </div>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                      Fastest stationary wheel swaps, sub-2.5s consistency & team points
-                    </p>
-                  </div>
-
-                  <div
-                    onClick={() => handleTabChange('analytics')}
-                    className="p-4 rounded-xl bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-[var(--accent-f1-red)] transition-all cursor-pointer group"
-                  >
-                    <div className="text-[10px] font-hud font-bold uppercase tracking-wider text-[var(--accent-f1-red)]">
-                      DERIVED ANALYTICS
-                    </div>
-                    <div className="font-hud font-black text-base uppercase text-[var(--text-primary)] group-hover:text-white mt-1">
-                      Title Clinch Permutations →
-                    </div>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                      Calculate mathematical championship scenarios & elimination points
-                    </p>
-                  </div>
-
-                  <div
-                    onClick={() => handleTabChange('testing')}
-                    className="p-4 rounded-xl bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-cyan-500 transition-all cursor-pointer group"
-                  >
-                    <div className="text-[10px] font-hud font-bold uppercase tracking-wider text-cyan-400">
-                      SEASONAL PREVIEW
-                    </div>
-                    <div className="font-hud font-black text-base uppercase text-[var(--text-primary)] group-hover:text-white mt-1">
-                      Pre-Season Testing →
-                    </div>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                      Bahrain test benchmarks, team mileage, tyre deltas & incident log
-                    </p>
-                  </div>
-                </div>
 
                 {/* Quick 2-Column Split: Standings Preview & Latest Race Classification */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">

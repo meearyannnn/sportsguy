@@ -65,7 +65,7 @@ export default function AskApexBar({
     'Who is leading the championship?',
     'Who has the fastest pit stop?',
     'When is the next race?',
-    'Who is leading F2?',
+    'How is Leclerc performing this season?',
     'Fastest lap in pre-season testing?',
     'How many wins does Norris have?',
   ];

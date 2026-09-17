@@ -53,8 +53,8 @@ export default function AnalyticsHub({
   const formIndex = calculateFormIndex(standings);
   const teammateDuels = calculateTeammateDuels(standings);
   const sundayDrives = calculateBestSundayDrives(recentResults, recentRaceName);
-  const reliability = calculateReliabilityTracker();
-  const paceDivergence = calculatePaceDivergence();
+  const reliability = calculateReliabilityTracker(recentResults);
+  const paceDivergence = calculatePaceDivergence(recentResults);
 
   return (
     <div className="space-y-6">

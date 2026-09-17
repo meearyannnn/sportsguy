@@ -37,8 +37,8 @@ export default function LightsOutSequence({
         playTelemetryTick();
       } else {
         clearInterval(intervalId);
-        // Random pause between 0.8s and 1.4s, mimicking real FIA race starter
-        const randomPause = 800 + Math.random() * 600;
+        // Deterministic 1.0s pause mimicking FIA starting sequence
+        const lightsPause = 1000;
         setTimeout(() => {
           if (isCancelled) return;
           setIsExtinguished(true);
@@ -49,7 +49,7 @@ export default function LightsOutSequence({
               onComplete();
             }
           }, 1800);
-        }, randomPause);
+        }, lightsPause);
       }
     }, stepInterval);
 

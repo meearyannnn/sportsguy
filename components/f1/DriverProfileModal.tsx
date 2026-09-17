@@ -214,20 +214,6 @@ export default function DriverProfileModal({
           </div>
         </div>
 
-        {/* Live Session Strip (if active session) */}
-        {profile.isActive && (
-          <div className="bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)] px-6 py-2 flex items-center justify-between text-xs font-mono-num">
-            <div className="flex items-center gap-2 text-emerald-400 font-hud font-bold uppercase">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>LIVE ON-TRACK TELEMETRY LINKED</span>
-            </div>
-            <div className="flex items-center gap-4 text-[var(--text-secondary)]">
-              <span>TYRE: <span className="font-bold text-[var(--text-primary)]">MEDIUM (M)</span></span>
-              <span>SPEED: <span className="font-bold text-amber-400">312 KM/H</span></span>
-              <span>GAP: <span className="font-bold text-emerald-400">+1.428s</span></span>
-            </div>
-          </div>
-        )}
 
         {/* Navigation Tabs (Horizontal touch-scroll with 44px touch targets) */}
         <div className="flex items-center gap-1 sm:gap-2 px-4 sm:px-8 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-xs font-hud font-bold uppercase tracking-wider overflow-x-auto touch-scroll">

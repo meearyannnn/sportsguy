@@ -1,8 +1,5 @@
 import { DriverStanding, ConstructorStanding, Race, RaceResult } from './types';
 import { TOP_SEASON_PIT_STOPS, TEAM_PIT_CREW_STANDINGS } from './pitstops';
-import { JUNIOR_SERIES_DATABASE, getAcademyDriversForTeam } from './juniorSeries';
-import { PRESEASON_TESTING_DATA } from './testingData';
-import { F1_TEAMS } from './teams';
 import { NavTab } from '@/components/f1/Navbar';
 
 export interface AskApexResult {
@@ -49,9 +46,9 @@ export function queryApexIntelligence(
         query: rawQuery,
         isAnswered: true,
         headline: 'Championship Leader',
-        answer: `${leaderName} leads the 2024 FIA Formula 1 World Drivers' Championship with ${leader.points} points (${leader.wins} wins), holding a ${gap}-point margin over ${p2?.Driver.givenName} ${p2?.Driver.familyName}.`,
+        answer: `${leaderName} leads the World Drivers' Championship with ${leader.points} points (${leader.wins} wins), holding a ${gap}-point margin over ${p2?.Driver.givenName || 'rivals'} ${p2?.Driver.familyName || ''}.`,
         highlightValue: `${leader.points} PTS`,
-        highlightLabel: `${leader.Driver.code} • P1`,
+        highlightLabel: `${leader.Driver.code || 'P1'} • P1`,
         targetTab: 'standings',
         actionText: 'View World Standings →',
         category: 'STANDINGS',
@@ -124,16 +121,16 @@ export function queryApexIntelligence(
       query: rawQuery,
       isAnswered: true,
       headline: 'Pre-Season Testing Intelligence',
-      answer: `Carlos Sainz (Ferrari) set the fastest overall benchmark lap of 1:29.921 on Day 2 in Bahrain. Haas logged the highest cumulative mileage with 441 laps (2,386 km). Note: fuel loads and engine run plans were undisclosed.`,
-      highlightValue: '1:29.921',
-      highlightLabel: 'SAI • Ferrari',
+      answer: `Official pre-season telemetry sessions track aerodynamic rakes, tyre degradation deltas, and multi-stint simulation runs. View detailed testing telemetry in the testing module.`,
+      highlightValue: 'TESTING',
+      highlightLabel: 'Telemetry Hub',
       targetTab: 'testing',
       actionText: 'Open Testing Telemetry →',
       category: 'TESTING',
     };
   }
 
-  // 5. Junior Series (F2, F3, F1 Academy)
+  // 5. Junior Series (F2, F3, F1 Academy) - Feed Disabled Notice
   if (
     query.includes('f2') ||
     query.includes('formula 2') ||
@@ -143,48 +140,13 @@ export function queryApexIntelligence(
     query.includes('academy') ||
     query.includes('junior')
   ) {
-    if (query.includes('academy') || query.includes('f1 academy')) {
-      const p1 = JUNIOR_SERIES_DATABASE.academy.drivers[0];
-      return {
-        query: rawQuery,
-        isAnswered: true,
-        headline: 'F1 Academy Leader',
-        answer: `${p1.name} leads the F1 Academy Championship with ${p1.points} points (${p1.wins} wins) representing ${p1.team} and supported by the Alpine Academy.`,
-        highlightValue: `${p1.points} PTS`,
-        highlightLabel: `${p1.name} (P1)`,
-        targetTab: 'junior',
-        actionText: 'View F1 Academy Standings →',
-        category: 'JUNIOR',
-      };
-    }
-
-    if (query.includes('f3') || query.includes('formula 3')) {
-      const p1 = JUNIOR_SERIES_DATABASE.f3.drivers[0];
-      return {
-        query: rawQuery,
-        isAnswered: true,
-        headline: 'FIA Formula 3 Champion',
-        answer: `${p1.name} (${p1.team}) clinched the FIA Formula 3 title with ${p1.points} points after a dramatic Monza season finale.`,
-        highlightValue: `${p1.points} PTS`,
-        highlightLabel: `${p1.name} • P1`,
-        targetTab: 'junior',
-        actionText: 'View Junior Series Hub →',
-        category: 'JUNIOR',
-      };
-    }
-
-    // F2 default
-    const p1 = JUNIOR_SERIES_DATABASE.f2.drivers[0];
-    const p2 = JUNIOR_SERIES_DATABASE.f2.drivers[1];
     return {
       query: rawQuery,
       isAnswered: true,
-      headline: 'FIA Formula 2 Standings',
-      answer: `${p1.name} (${p1.team}, Red Bull Junior) leads the FIA F2 Championship with ${p1.points} points, engaged in a tight title fight with ${p2.name} (${p2.points} pts).`,
-      highlightValue: `${p1.points} PTS`,
-      highlightLabel: `${p1.name} • P1`,
-      targetTab: 'junior',
-      actionText: 'View F2 Standings →',
+      headline: 'Junior Series Telemetry • Feed Disabled',
+      answer: 'Live API feeds for Formula 2, Formula 3, and F1 Academy are currently not connected. Mock standings have been excluded to guarantee strict telemetry accuracy.',
+      highlightValue: 'STANDBY',
+      highlightLabel: 'Feeder Series',
       category: 'JUNIOR',
     };
   }
@@ -223,7 +185,7 @@ export function queryApexIntelligence(
           query: rawQuery,
           isAnswered: true,
           headline: `${d.givenName} ${d.familyName} Telemetry Profile`,
-          answer: `${d.givenName} ${d.familyName} races for ${constr}. This season: Championship P${standing.position} with ${standing.points} points and ${standing.wins} Grand Prix victories.`,
+          answer: `${d.givenName} ${d.familyName} races for ${constr}. Current season standings: P${standing.position} with ${standing.points} points and ${standing.wins} Grand Prix victories.`,
           highlightValue: `P${standing.position}`,
           highlightLabel: `${standing.points} PTS • ${standing.wins} Wins`,
           targetDriverId: d.driverId,
@@ -234,19 +196,26 @@ export function queryApexIntelligence(
     }
   }
 
-  // 7. Closest Finish / Race Margins
-  if (query.includes('closest finish') || query.includes('smallest gap') || query.includes('closest race')) {
-    return {
-      query: rawQuery,
-      isAnswered: true,
-      headline: 'Closest Grand Prix Finish',
-      answer: 'The closest finish of the season occurred at the Italian Grand Prix in Monza, with Charles Leclerc holding off Oscar Piastri by just 2.664 seconds, following a thrilling tyre-conservation one-stop strategy.',
-      highlightValue: '2.664s',
-      highlightLabel: 'Monza Delta',
-      targetTab: 'results',
-      actionText: 'View Race Results →',
-      category: 'STANDINGS',
-    };
+  // 7. Closest Finish / Race Margins (Calculated from recentResults)
+  if (query.includes('closest finish') || query.includes('smallest gap') || query.includes('closest race') || query.includes('finish margin')) {
+    if (recentResults && recentResults.length >= 2) {
+      const p1 = recentResults[0];
+      const p2 = recentResults[1];
+      const p1Name = `${p1.Driver.givenName} ${p1.Driver.familyName}`;
+      const p2Name = `${p2.Driver.givenName} ${p2.Driver.familyName}`;
+      const marginTime = p2.Time?.time || p2.status || 'close finish';
+      return {
+        query: rawQuery,
+        isAnswered: true,
+        headline: 'Latest Race Victory Margin',
+        answer: `In the latest fetched Grand Prix classification, ${p1Name} secured victory ahead of ${p2Name} (${marginTime}).`,
+        highlightValue: marginTime,
+        highlightLabel: `${p1.Driver.code || 'P1'} vs ${p2.Driver.code || 'P2'}`,
+        targetTab: 'results',
+        actionText: 'View Race Results →',
+        category: 'STANDINGS',
+      };
+    }
   }
 
   // 8. Out of Scope / Speculative / Declined
@@ -255,7 +224,7 @@ export function queryApexIntelligence(
     isAnswered: false,
     headline: 'Pit Radio • Outside Telemetry Parameters',
     answer:
-      'APEX only processes factual queries derived from official FIA timing, standings, pit stop data, pre-season testing, and junior series feeder pipelines. Speculative predictions and opinions are excluded.',
+      'APEX only processes factual queries derived from official FIA timing, standings, pit stop data, and pre-season testing. Speculative predictions and opinions are excluded.',
     highlightValue: 'STANDBY',
     highlightLabel: 'Pit Radio',
     category: 'DECLINED',

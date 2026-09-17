@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Race, RaceResult } from '@/lib/f1/types';
-import { getTeamMeta, DRIVER_DETAILS } from '@/lib/f1/teams';
+import { getTeamMeta, DRIVER_DETAILS, getNationalityFlag } from '@/lib/f1/teams';
 import {
   Flag,
   Trophy,
@@ -140,8 +140,9 @@ export default function RaceResultsView({
                       </span>
                       <div className="w-1 h-5 rounded-full shrink-0" style={{ backgroundColor: team.color }} />
                       <div className="min-w-0">
-                        <div className="font-hud font-bold uppercase text-xs truncate text-[var(--text-primary)]">
-                          {res.Driver.givenName} <span className="font-black">{res.Driver.familyName}</span>
+                        <div className="font-hud font-bold uppercase text-xs truncate text-[var(--text-primary)] flex items-center gap-1.5">
+                          <span>{res.Driver.givenName} <span className="font-black">{res.Driver.familyName}</span></span>
+                          <span className="text-xs shrink-0">{getNationalityFlag(res.Driver.nationality)}</span>
                         </div>
                         <div className="text-[10px] text-[var(--text-muted)] truncate">{res.Constructor.name}</div>
                       </div>
@@ -285,6 +286,7 @@ export default function RaceResultsView({
                               {res.Driver.givenName}{' '}
                               <span className="font-black">{res.Driver.familyName}</span>
                             </span>
+                            <span className="text-xs shrink-0">{getNationalityFlag(res.Driver.nationality)}</span>
                             <PaceTrace driverId={res.Driver.driverId} width={34} height={10} />
                           </div>
                           <span className="text-[10px] text-[var(--text-muted)] block sm:hidden">
