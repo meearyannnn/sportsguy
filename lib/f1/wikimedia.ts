@@ -233,11 +233,30 @@ function setLocalCache(cache: Record<string, DriverMedia>) {
  * Retrieves driver photo and licensing attribution from Wikimedia Commons.
  * Fallbacks to live Wikimedia Commons Search API if unmapped, then caches locally.
  */
+import { getDriverHeadshot } from './teams';
+
 export async function getDriverMedia(
   driverId: string,
   driverName?: string
 ): Promise<DriverMedia | null> {
-  // 1. Check curated verified dataset
+  // 1. Check official high-res scraped driver headshots
+  const officialHeadshot = getDriverHeadshot(driverId);
+  if (officialHeadshot) {
+    return {
+      driverId,
+      name: driverName || driverId,
+      thumbUrl: officialHeadshot,
+      attribution: {
+        photographer: 'Official Telemetry Media',
+        license: 'Official FIA Media',
+        licenseUrl: 'https://www.formula1.com',
+        sourceUrl: officialHeadshot,
+        commonsTitle: `${driverId} official headshot`,
+      },
+    };
+  }
+
+  // 2. Check curated verified dataset
   if (CURATED_COMMONS_MEDIA[driverId]) {
     return CURATED_COMMONS_MEDIA[driverId];
   }

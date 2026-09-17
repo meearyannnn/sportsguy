@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Race, RaceResult, DriverStanding, ConstructorStanding } from '@/lib/f1/types';
-import { CIRCUIT_EXTRAS, getTeamMeta } from '@/lib/f1/teams';
+import { CIRCUIT_EXTRAS, getTeamMeta, getDriverHeadshot } from '@/lib/f1/teams';
 import { fetchF1ComCircuitSpecs, F1ComCircuitSpecs } from '@/lib/f1/f1ComScraper';
 import {
   getRaceResults,
@@ -307,12 +307,22 @@ export default function GrandPrixDetailModal({
                             </span>
                           </div>
 
-                          <div>
-                            <div className="text-base font-black font-hud text-[var(--text-primary)]">
-                              {res.Driver.givenName} {res.Driver.familyName}
-                            </div>
-                            <div className="text-xs text-[var(--text-secondary)]">
-                              {res.Constructor.name}
+                          <div className="flex items-center gap-3">
+                            {getDriverHeadshot(res.Driver.driverId || res.Driver.code || res.Driver.familyName) ? (
+                              <img
+                                src={getDriverHeadshot(res.Driver.driverId || res.Driver.code || res.Driver.familyName)}
+                                alt={res.Driver.familyName}
+                                className="w-12 h-12 rounded-lg object-cover object-top border border-[var(--border-subtle)] shrink-0 bg-[var(--bg-tertiary)]"
+                                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                              />
+                            ) : null}
+                            <div>
+                              <div className="text-base font-black font-hud text-[var(--text-primary)]">
+                                {res.Driver.givenName} {res.Driver.familyName}
+                              </div>
+                              <div className="text-xs text-[var(--text-secondary)]">
+                                {res.Constructor.name}
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -379,7 +389,15 @@ export default function GrandPrixDetailModal({
 
                                 <td className="py-2.5 px-3 font-sans">
                                   <div className="flex items-center gap-2">
-                                    <span className="w-1.5 h-4 rounded-full" style={{ backgroundColor: teamMeta.color }} />
+                                    <span className="w-1.5 h-6 rounded-full shrink-0" style={{ backgroundColor: teamMeta.color }} />
+                                    {getDriverHeadshot(res.Driver.driverId || res.Driver.code || res.Driver.familyName) && (
+                                      <img
+                                        src={getDriverHeadshot(res.Driver.driverId || res.Driver.code || res.Driver.familyName)}
+                                        alt={res.Driver.familyName}
+                                        className="w-6 h-6 rounded object-cover object-top border border-[var(--border-subtle)] shrink-0 bg-[var(--bg-tertiary)]"
+                                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                                      />
+                                    )}
                                     <span className="font-bold text-[var(--text-primary)]">
                                       {res.Driver.givenName} {res.Driver.familyName}
                                     </span>

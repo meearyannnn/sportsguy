@@ -311,13 +311,32 @@ export default function JuniorSeriesView() {
                     </div>
                   </div>
 
-                  {/* Driver Header */}
-                  <div>
-                    <h3 className="text-lg font-black font-hud text-[var(--text-primary)] group-hover:text-[var(--accent-f1-red)] transition-colors">
-                      {driver.name}
-                    </h3>
-                    <div className="text-xs font-medium text-[var(--text-secondary)]">
-                      {driver.team}
+                  {/* Driver Headshot & Name Header */}
+                  <div className="flex items-center gap-3">
+                    {driver.headshotUrl ? (
+                      <div className="w-14 h-14 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-hidden shrink-0 relative flex items-end justify-center">
+                        <img
+                          src={driver.headshotUrl}
+                          alt={driver.name}
+                          className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] font-hud font-black text-sm text-[var(--text-muted)] flex items-center justify-center shrink-0">
+                        {driver.code}
+                      </div>
+                    )}
+
+                    <div>
+                      <h3 className="text-lg font-black font-hud text-[var(--text-primary)] group-hover:text-[var(--accent-f1-red)] transition-colors">
+                        {driver.name}
+                      </h3>
+                      <div className="text-xs font-medium text-[var(--text-secondary)]">
+                        {driver.team}
+                      </div>
                     </div>
                   </div>
 
@@ -413,16 +432,28 @@ export default function JuniorSeriesView() {
                           </span>
                         </td>
                         <td className="py-3 px-4 font-sans">
-                          <div className="flex items-center gap-2">
-                            <span>{driver.countryFlag}</span>
-                            <span className="font-bold text-[var(--text-primary)]">{driver.name}</span>
-                            <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">#{driver.number}</span>
-                          </div>
-                          {driver.f1Academy && (
-                            <div className="text-[10px] text-[var(--accent-f1-red)] font-hud font-bold mt-0.5">
-                              {driver.f1Academy}
+                          <div className="flex items-center gap-2.5">
+                            {driver.headshotUrl && (
+                              <img
+                                src={driver.headshotUrl}
+                                alt={driver.name}
+                                className="w-7 h-7 rounded-md object-cover object-top border border-[var(--border-subtle)] shrink-0"
+                                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                              />
+                            )}
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span>{driver.countryFlag}</span>
+                                <span className="font-bold text-[var(--text-primary)]">{driver.name}</span>
+                                <span className="text-[10px] font-mono text-[var(--text-muted)] uppercase">#{driver.number}</span>
+                              </div>
+                              {driver.f1Academy && (
+                                <div className="text-[10px] text-[var(--accent-f1-red)] font-hud font-bold">
+                                  {driver.f1Academy}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </td>
                         <td className="py-3 px-4 text-[var(--text-secondary)] font-sans">{driver.team}</td>
                         <td className="py-3 px-4 text-center font-bold">{driver.wins}</td>
