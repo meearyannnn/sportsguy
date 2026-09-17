@@ -33,6 +33,47 @@ import {
 type SeriesKey = 'f2' | 'f3' | 'academy';
 type ViewSubTab = 'grid' | 'standings' | 'calendar' | 'specs' | 'pathway';
 
+function JuniorDriverAvatar({
+  driver,
+  size = 'md',
+}: {
+  driver: JuniorDriver;
+  size?: 'sm' | 'md' | 'lg';
+}) {
+  const [hasError, setHasError] = useState(false);
+
+  const dimensions =
+    size === 'sm'
+      ? 'w-8 h-8 rounded-md text-[10px]'
+      : size === 'lg'
+      ? 'w-16 h-16 rounded-xl text-base'
+      : 'w-14 h-14 rounded-lg text-sm';
+
+  if (!driver.headshotUrl || hasError) {
+    return (
+      <div
+        className={`${dimensions} bg-gradient-to-br from-[var(--bg-tertiary)] via-[var(--bg-secondary)] to-[var(--bg-tertiary)] border border-[var(--border-subtle)] font-hud font-black text-[var(--text-primary)] flex flex-col items-center justify-center shrink-0 relative overflow-hidden shadow-sm`}
+      >
+        <span className="text-[10px] leading-none mb-0.5">{driver.countryFlag}</span>
+        <span className="font-mono text-[10px] tracking-wider text-[var(--accent-f1-red)] font-extrabold">{driver.code}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`${dimensions} bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-hidden shrink-0 relative flex items-end justify-center shadow-sm`}
+    >
+      <img
+        src={driver.headshotUrl}
+        alt={driver.name}
+        className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-300"
+        onError={() => setHasError(true)}
+      />
+    </div>
+  );
+}
+
 export default function JuniorSeriesView() {
   const [activeSeries, setActiveSeries] = useState<SeriesKey>('f2');
   const [activeSubTab, setActiveSubTab] = useState<ViewSubTab>('grid');
@@ -313,22 +354,7 @@ export default function JuniorSeriesView() {
 
                   {/* Driver Headshot & Name Header */}
                   <div className="flex items-center gap-3">
-                    {driver.headshotUrl ? (
-                      <div className="w-14 h-14 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] overflow-hidden shrink-0 relative flex items-end justify-center">
-                        <img
-                          src={driver.headshotUrl}
-                          alt={driver.name}
-                          className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-300"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-14 h-14 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] font-hud font-black text-sm text-[var(--text-muted)] flex items-center justify-center shrink-0">
-                        {driver.code}
-                      </div>
-                    )}
+                    <JuniorDriverAvatar driver={driver} size="md" />
 
                     <div>
                       <h3 className="text-lg font-black font-hud text-[var(--text-primary)] group-hover:text-[var(--accent-f1-red)] transition-colors">
@@ -433,14 +459,7 @@ export default function JuniorSeriesView() {
                         </td>
                         <td className="py-3 px-4 font-sans">
                           <div className="flex items-center gap-2.5">
-                            {driver.headshotUrl && (
-                              <img
-                                src={driver.headshotUrl}
-                                alt={driver.name}
-                                className="w-7 h-7 rounded-md object-cover object-top border border-[var(--border-subtle)] shrink-0"
-                                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                              />
-                            )}
+                            <JuniorDriverAvatar driver={driver} size="sm" />
                             <div>
                               <div className="flex items-center gap-1.5">
                                 <span>{driver.countryFlag}</span>
