@@ -1,69 +1,749 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import Navbar, { NavTab } from '@/components/f1/Navbar';
+import BottomNav from '@/components/f1/BottomNav';
+import HeroLiveHub from '@/components/f1/HeroLiveHub';
+import CalendarView from '@/components/f1/CalendarView';
+import StandingsView from '@/components/f1/StandingsView';
+import RaceResultsView from '@/components/f1/RaceResultsView';
+import PaddockView from '@/components/f1/PaddockView';
+import LiveTelemetryHUD from '@/components/f1/LiveTelemetryHUD';
+import AskApexBar from '@/components/f1/AskApexBar';
+import NavigationTransition from '@/components/f1/NavigationTransition';
+import MorningDigest from '@/components/f1/MorningDigest';
+import { useMobileHistory } from '@/lib/f1/useMobileHistory';
+
+// Dynamic imports for heavy secondary views to minimize initial bundle size and boost Core Web Vitals
+const DynamicLoadingSkeleton = () => (
+  <div className="w-full py-16 flex flex-col items-center justify-center space-y-3 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl animate-pulse">
+    <div className="w-7 h-7 rounded-full border-2 border-[var(--accent-f1-red)] border-t-transparent animate-spin" />
+    <span className="font-hud font-bold text-xs uppercase tracking-wider text-[var(--text-muted)]">
+      Loading Data...
+    </span>
+  </div>
+);
+
+const AnalyticsHub = dynamic(() => import('@/components/f1/AnalyticsHub'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const StorytellingHub = dynamic(() => import('@/components/f1/StorytellingHub'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const HistoricalArchiveView = dynamic(() => import('@/components/f1/HistoricalArchiveView'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const NewsFeedView = dynamic(() => import('@/components/f1/NewsFeedView'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const JuniorSeriesView = dynamic(() => import('@/components/f1/JuniorSeriesView'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const PreSeasonTestingView = dynamic(() => import('@/components/f1/PreSeasonTestingView'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const PitCrewLeaderboard = dynamic(() => import('@/components/f1/PitCrewLeaderboard'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const DesignManifestoView = dynamic(() => import('@/components/f1/DesignManifestoView'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const PersonalizationModal = dynamic(() => import('@/components/f1/PersonalizationModal'));
+const DriverProfileModal = dynamic(() => import('@/components/f1/DriverProfileModal'));
+const GlanceMode = dynamic(() => import('@/components/f1/GlanceMode'));
+import {
+  getCalendar,
+  getDriverStandings,
+  getConstructorStandings,
+  getRaceResults,
+} from '@/lib/f1/jolpica';
+import {
+  getLatestSession,
+  getSessionWeather,
+  getSessionIntervals,
+} from '@/lib/f1/openf1';
+import {
+  Race,
+  DriverStanding,
+  ConstructorStanding,
+  RaceResult,
+  OpenF1Session,
+  OpenF1Weather,
+  OpenF1Interval,
+} from '@/lib/f1/types';
+import {
+  loadUserPreferences,
+  applyTeamLiveryTheme,
+} from '@/lib/f1/preferences';
+import { AlertTriangle, Radio } from 'lucide-react';
+import { useLiveTabTitle } from '@/lib/f1/useLiveTabTitle';
+import { TimingLeaderboardSkeleton, TelemetryErrorState } from '@/components/f1/SkeletonLoaders';
+
+export default function ApexHome() {
+  const [activeTab, setActiveTab] = useState<NavTab>('hub');
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(true);
+  const [useLocalTime, setUseLocalTime] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isPersonalizationOpen, setIsPersonalizationOpen] = useState<boolean>(false);
+  const [selectedDriverProfileId, setSelectedDriverProfileId] = useState<string | null>(null);
+  const [isGlanceModeOpen, setIsGlanceModeOpen] = useState<boolean>(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState<boolean>(false);
+
+  // Mobile Hardware Back-Button & Swipe Gesture Stack Handler
+  useMobileHistory({
+    hasOpenModal: Boolean(selectedDriverProfileId || isPersonalizationOpen || isGlanceModeOpen || isMobileSearchOpen),
+    onDismissTopModal: () => {
+      if (selectedDriverProfileId) {
+        setSelectedDriverProfileId(null);
+      } else if (isPersonalizationOpen) {
+        setIsPersonalizationOpen(false);
+      } else if (isGlanceModeOpen) {
+        setIsGlanceModeOpen(false);
+      } else if (isMobileSearchOpen) {
+        setIsMobileSearchOpen(false);
+      }
+    },
+  });
+
+  // Primary Data State
+  const [calendar, setCalendar] = useState<Race[]>([]);
+  const [driverStandings, setDriverStandings] = useState<DriverStanding[]>([]);
+  const [constructorStandings, setConstructorStandings] = useState<ConstructorStanding[]>([]);
+  const [recentRace, setRecentRace] = useState<Race | null>(null);
+  const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
+  const [selectedSeason, setSelectedSeason] = useState<string>('2026');
+  const [selectedRound, setSelectedRound] = useState<string>('last');
+
+  // OpenF1 Live State
+  const [latestSession, setLatestSession] = useState<OpenF1Session | null>(null);
+  const [weather, setWeather] = useState<OpenF1Weather | null>(null);
+  const [intervals, setIntervals] = useState<OpenF1Interval[]>([]);
+
+  // Loading & Error States
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Navigation Transition State & Scroll Management
+  const [isNavTransitioning, setIsNavTransitioning] = useState<boolean>(false);
+
+  // Sync tab with URL query param on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab') as NavTab;
+      if (
+        tabParam &&
+        ['hub', 'calendar', 'standings', 'results', 'paddock', 'analytics', 'stories', 'archive', 'live', 'news'].includes(tabParam)
+      ) {
+        setActiveTab(tabParam);
+      }
+    }
+  }, []);
+
+  // Listen for browser Back/Forward (popstate)
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      const targetTab =
+        (e.state?.tab as NavTab) ||
+        (new URLSearchParams(window.location.search).get('tab') as NavTab) ||
+        'hub';
+
+      const prefersReducedMotion =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (prefersReducedMotion) {
+        setActiveTab(targetTab);
+        return;
+      }
+
+      // Browser back/forward: play transition loader consistently without overriding restored scroll position
+      setIsNavTransitioning(true);
+      setActiveTab(targetTab);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Fresh forward navigation (clicking nav items, links, cards)
+  const handleTabChange = (nextTab: NavTab) => {
+    if (nextTab === activeTab) {
+      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+      return;
+    }
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+      // Instant cut without animation: reset scroll immediately before setting tab
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      setActiveTab(nextTab);
+      try {
+        window.history.pushState({ tab: nextTab }, '', `?tab=${nextTab}`);
+      } catch {}
+      return;
+    }
+
+    // Start lights-out transition
+    setIsNavTransitioning(true);
+
+    // During transition cover (at ~380ms), reset scroll to top before revealing new page
+    setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      setActiveTab(nextTab);
+      try {
+        window.history.pushState({ tab: nextTab }, '', `?tab=${nextTab}`);
+      } catch {}
+    }, 380);
+  };
+
+  // Live-aware browser tab title and dynamic favicon
+  const isSessionLive = Boolean(latestSession && latestSession.session_name);
+  const liveLeader = driverStandings[0]?.Driver?.code || 'VER';
+  useLiveTabTitle({
+    isLive: isSessionLive,
+    leaderCode: liveLeader,
+    gap: 'LEADER',
+    sessionName: latestSession?.session_name,
+  });
+
+  // Respect user context: default to browser's prefers-color-scheme, remember manual override
+  useEffect(() => {
+    try {
+      const savedOverride = localStorage.getItem('apex_theme_override');
+      let isDark = true;
+
+      if (savedOverride === 'light') {
+        isDark = false;
+      } else if (savedOverride === 'dark') {
+        isDark = true;
+      } else if (typeof window !== 'undefined' && window.matchMedia) {
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      }
+
+      setIsDarkMode(isDark);
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      }
+
+      // Listen for OS scheme adjustments when user hasn't set manual override
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleSchemeChange = (e: MediaQueryListEvent) => {
+        if (!localStorage.getItem('apex_theme_override')) {
+          setIsDarkMode(e.matches);
+          if (e.matches) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.classList.remove('light');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.classList.add('light');
+          }
+        }
+      };
+
+      mediaQuery.addEventListener('change', handleSchemeChange);
+      return () => mediaQuery.removeEventListener('change', handleSchemeChange);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Apply saved personalization on load
+  useEffect(() => {
+    const prefs = loadUserPreferences();
+    if (prefs.favoriteTeamId) {
+      applyTeamLiveryTheme(prefs.favoriteTeamId);
+    }
+    if (prefs.useLocalTime !== undefined) {
+      setUseLocalTime(prefs.useLocalTime);
+    }
+  }, []);
+
+  // Toggle Theme with manual override saved
+  const toggleTheme = () => {
+    setIsDarkMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('apex_theme_override', next ? 'dark' : 'light');
+      } catch {}
+      if (next) {
+        document.documentElement.classList.add('dark');
+        document.documentElement.classList.remove('light');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      }
+      return next;
+    });
+  };
+
+  // Toggle Timezone
+  const toggleTimezone = () => {
+    setUseLocalTime((prev) => !prev);
+  };
+
+  // Initial Load
+  const fetchAllData = async () => {
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      const [calData, drvData, constData, openSession] = await Promise.all([
+        getCalendar(selectedSeason),
+        getDriverStandings(selectedSeason),
+        getConstructorStandings(selectedSeason),
+        getLatestSession(),
+      ]);
+
+      setCalendar(calData);
+      setDriverStandings(drvData);
+      setConstructorStandings(constData);
+      setLatestSession(openSession);
+
+      // Fetch Results for the chosen round
+      const resultsData = await getRaceResults(selectedSeason, selectedRound);
+      setRecentRace(resultsData.race);
+      setRaceResults(resultsData.results);
+
+      // Weather & Intervals if session exists
+      if (openSession?.session_key) {
+        const [wData, iData] = await Promise.all([
+          getSessionWeather(openSession.session_key),
+          getSessionIntervals(openSession.session_key),
+        ]);
+        setWeather(wData);
+        setIntervals(iData);
+      }
+    } catch (err: any) {
+      console.error('Failed to load F1 data:', err);
+      setErrorMsg('Some telemetry feeds are currently synchronizing or experiencing rate limits.');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllData();
+  }, [selectedSeason]);
+
+  // When round changes: reset viewport to top so user lands at top of classifications
+  const handleSelectRound = async (round: string) => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    setSelectedRound(round);
+    setIsRefreshing(true);
+    try {
+      const res = await getRaceResults(selectedSeason, round);
+      setRecentRace(res.race);
+      setRaceResults(res.results);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // When season changes: reset viewport to top
+  const handleSelectSeason = (season: string) => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    setSelectedSeason(season);
+  };
+
+  // Calculate Next Upcoming Race
+  const now = new Date().getTime();
+  const nextRace =
+    calendar.find((r) => {
+      const iso = r.time ? `${r.date}T${r.time}` : `${r.date}T13:00:00Z`;
+      return new Date(iso).getTime() > now;
+    }) || calendar[calendar.length - 1] || null;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors pb-16 md:pb-0">
+      {/* F1 Starting Lights Navigation Transition Loader */}
+      <NavigationTransition
+        isTransitioning={isNavTransitioning}
+        onTransitionComplete={() => setIsNavTransitioning(false)}
+      />
+
+      {/* Navigation */}
+      <Navbar
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        isDarkMode={isDarkMode}
+        onToggleTheme={toggleTheme}
+        useLocalTime={useLocalTime}
+        onToggleTimezone={toggleTimezone}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        nextRaceName={nextRace?.raceName || 'Singapore Grand Prix'}
+        onOpenPersonalization={() => setIsPersonalizationOpen(true)}
+        onToggleGlance={() => setIsGlanceModeOpen(true)}
+        driverStandings={driverStandings}
+        calendar={calendar}
+        onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+        onSelectRound={handleSelectRound}
+        isMobileSearchOpen={isMobileSearchOpen}
+        onToggleMobileSearch={() => setIsMobileSearchOpen((prev) => !prev)}
+      />
+
+      {/* Main Content Area with Timing Tower Rail Signature Motif */}
+      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 timing-tower-rail ${latestSession ? 'is-live' : ''}`}>
+        {/* Real Content-Shaped Skeleton with Pit-Wall Radio Phrasing */}
+        {isLoading ? (
+          <TimingLeaderboardSkeleton />
+        ) : (
+          <>
+            {/* Pit-Wall Radio Status Warning if API desynced */}
+            {errorMsg && (
+              <div className="flex items-center justify-between p-3 rounded bg-[var(--bg-secondary)] border border-[var(--accent-f1-red)]/35 text-[var(--accent-f1-red)] text-xs font-hud font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                  <Radio className="w-4 h-4 animate-pulse shrink-0" />
+                  <span>TELEMETRY SIGNAL UNSTABLE • RE-ESTABLISHING PIT RADIO CARRIER</span>
+                </div>
+                <button
+                  onClick={() => fetchAllData()}
+                  className="px-2.5 py-1 rounded bg-[var(--bg-tertiary)] hover:bg-[var(--border-hover)] text-[var(--text-primary)] transition-colors cursor-pointer text-[10px] font-mono-num font-bold uppercase"
+                >
+                  RETRY LINK
+                </button>
+              </div>
+            )}
+
+
+            {/* TAB CONTENT: RACE HUB */}
+            {activeTab === 'hub' && (
+              <div className="space-y-8">
+                {/* Hero / Countdown / Next GP Section */}
+                <HeroLiveHub
+                  nextRace={nextRace}
+                  latestSession={latestSession}
+                  weather={weather}
+                  useLocalTime={useLocalTime}
+                  onNavigateTab={handleTabChange}
+                  onToggleGlance={() => setIsGlanceModeOpen(true)}
+                />
+
+                {/* No-Spoiler Morning Digest (Concealed podium for time-zone delayed viewers) */}
+                <MorningDigest
+                  raceName={recentRace?.raceName}
+                  circuitName={recentRace?.Circuit?.circuitName}
+                  results={raceResults}
+                  onViewResults={() => handleTabChange('results')}
+                />
+
+                {/* Quick Derived Insights Shortcut Banner */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div
+                    onClick={() => handleTabChange('junior')}
+                    className="p-4 rounded-xl bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-amber-500 transition-all cursor-pointer group"
+                  >
+                    <div className="text-[10px] font-hud font-bold uppercase tracking-wider text-amber-400">
+                      ROAD TO F1
+                    </div>
+                    <div className="font-hud font-black text-base uppercase text-[var(--text-primary)] group-hover:text-white mt-1">
+                      Junior Feeder Series →
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      F2, F3 & F1 Academy standings, race results & F1 talent pipeline
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => handleTabChange('pitcrew')}
+                    className="p-4 rounded-xl bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-emerald-500 transition-all cursor-pointer group"
+                  >
+                    <div className="text-[10px] font-hud font-bold uppercase tracking-wider text-emerald-400">
+                      DHL TROPHY
+                    </div>
+                    <div className="font-hud font-black text-base uppercase text-[var(--text-primary)] group-hover:text-white mt-1">
+                      Pit Crew Championship →
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      Fastest stationary wheel swaps, sub-2.5s consistency & team points
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => handleTabChange('analytics')}
+                    className="p-4 rounded-xl bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-[var(--accent-f1-red)] transition-all cursor-pointer group"
+                  >
+                    <div className="text-[10px] font-hud font-bold uppercase tracking-wider text-[var(--accent-f1-red)]">
+                      DERIVED ANALYTICS
+                    </div>
+                    <div className="font-hud font-black text-base uppercase text-[var(--text-primary)] group-hover:text-white mt-1">
+                      Title Clinch Permutations →
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      Calculate mathematical championship scenarios & elimination points
+                    </p>
+                  </div>
+
+                  <div
+                    onClick={() => handleTabChange('testing')}
+                    className="p-4 rounded-xl bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] hover:border-cyan-500 transition-all cursor-pointer group"
+                  >
+                    <div className="text-[10px] font-hud font-bold uppercase tracking-wider text-cyan-400">
+                      SEASONAL PREVIEW
+                    </div>
+                    <div className="font-hud font-black text-base uppercase text-[var(--text-primary)] group-hover:text-white mt-1">
+                      Pre-Season Testing →
+                    </div>
+                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                      Bahrain test benchmarks, team mileage, tyre deltas & incident log
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick 2-Column Split: Standings Preview & Latest Race Classification */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  {/* Left: Top Drivers Championship Snapshot */}
+                  <div className="lg:col-span-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[var(--accent-f1-red)]"></span>
+                        <h3 className="font-hud font-black text-lg uppercase tracking-tight text-[var(--text-primary)]">
+                          Championship Leaders
+                        </h3>
+                      </div>
+                      <button
+                        onClick={() => handleTabChange('standings')}
+                        className="text-xs font-hud font-bold uppercase tracking-wider text-[var(--accent-f1-red)] hover:underline cursor-pointer"
+                      >
+                        Full Standings →
+                      </button>
+                    </div>
+
+                    <StandingsView
+                      driverStandings={driverStandings.slice(0, 6)}
+                      constructorStandings={constructorStandings.slice(0, 5)}
+                      onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+                    />
+                  </div>
+
+                  {/* Right: Telemetry / Live Session Snapshot */}
+                  <div className="lg:col-span-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <h3 className="font-hud font-black text-lg uppercase tracking-tight text-[var(--text-primary)]">
+                          Live Track Telemetry
+                        </h3>
+                      </div>
+                      <button
+                        onClick={() => handleTabChange('live')}
+                        className="text-xs font-hud font-bold uppercase tracking-wider text-emerald-400 hover:underline cursor-pointer"
+                      >
+                        Full Telemetry HUD →
+                      </button>
+                    </div>
+
+                    <LiveTelemetryHUD
+                      session={latestSession}
+                      initialWeather={weather}
+                      initialIntervals={intervals}
+                      onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+                      showFeed={false}
+                      onToggleGlance={() => setIsGlanceModeOpen(true)}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* TAB: CALENDAR */}
+            {activeTab === 'calendar' && (
+              <CalendarView
+                races={calendar}
+                useLocalTime={useLocalTime}
+                onSelectRace={() => {}}
+                onViewResults={(round) => {
+                  handleSelectRound(round);
+                  handleTabChange('results');
+                }}
+              />
+            )}
+
+            {/* TAB: STANDINGS */}
+            {activeTab === 'standings' && (
+              <StandingsView
+                driverStandings={driverStandings}
+                constructorStandings={constructorStandings}
+                onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+              />
+            )}
+
+            {/* TAB: RESULTS */}
+            {activeTab === 'results' && (
+              <RaceResultsView
+                currentRace={recentRace}
+                results={raceResults}
+                availableRaces={calendar}
+                selectedRound={selectedRound}
+                selectedSeason={selectedSeason}
+                onSelectRound={handleSelectRound}
+                onSelectSeason={handleSelectSeason}
+                onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+              />
+            )}
+
+            {/* TAB: ANALYTICS & INTELLIGENCE */}
+            {activeTab === 'analytics' && (
+              <AnalyticsHub
+                standings={driverStandings}
+                constructorStandings={constructorStandings}
+                calendar={calendar}
+                recentResults={raceResults}
+                recentRaceName={recentRace?.raceName}
+                onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+              />
+            )}
+
+            {/* TAB: STORYTELLING & BRIEFINGS */}
+            {activeTab === 'stories' && (
+              <StorytellingHub
+                nextRace={nextRace}
+                standings={driverStandings}
+                onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+              />
+            )}
+
+            {/* TAB: 1950+ HISTORICAL VAULT */}
+            {activeTab === 'archive' && (
+              <HistoricalArchiveView
+                onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+              />
+            )}
+
+            {/* TAB: PADDOCK & H2H */}
+            {activeTab === 'paddock' && (
+              <PaddockView
+                driverStandings={driverStandings}
+                constructorStandings={constructorStandings}
+                onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+                onNavigateTab={handleTabChange}
+              />
+            )}
+
+            {/* TAB: LIVE TELEMETRY HUD */}
+            {activeTab === 'live' && (
+              <div className="space-y-6">
+                <AskApexBar
+                  driverStandings={driverStandings}
+                  calendar={calendar}
+                  recentResults={raceResults}
+                  onNavigateTab={handleTabChange}
+                  onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+                />
+                <LiveTelemetryHUD
+                  session={latestSession}
+                  initialWeather={weather}
+                  initialIntervals={intervals}
+                  onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+                  showFeed={true}
+                  onToggleGlance={() => setIsGlanceModeOpen(true)}
+                />
+              </div>
+            )}
+
+            {/* TAB: NEWS WIRE FEED */}
+            {activeTab === 'news' && <NewsFeedView />}
+
+            {/* TAB: JUNIOR SERIES TRACKER (F2 / F3 / F1 ACADEMY) */}
+            {activeTab === 'junior' && (
+              <JuniorSeriesView />
+            )}
+
+            {/* TAB: PRE-SEASON TESTING TRACKER */}
+            {activeTab === 'testing' && (
+              <PreSeasonTestingView />
+            )}
+
+            {/* TAB: PIT CREW LEADERBOARD */}
+            {activeTab === 'pitcrew' && (
+              <PitCrewLeaderboard
+                onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+              />
+            )}
+
+            {/* TAB: WHY THIS LOOKS LIKE THIS (DESIGN MANIFESTO) */}
+            {activeTab === 'about' && (
+              <DesignManifestoView />
+            )}
+          </>
+        )}
       </main>
+
+      {/* Footer */}
+      <footer className="w-full border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] mt-12 py-8 px-4 sm:px-6 lg:px-8 text-xs text-[var(--text-muted)]">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-hud font-black text-base tracking-widest text-[var(--text-primary)]">
+              APEX
+            </span>
+            <span>•</span>
+            <span>Formula 1 Telemetry Companion</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 text-[11px]">
+            <span>Official FIA Timing & Telemetry Data Feed</span>
+            <span>•</span>
+            <span>Stale-While-Revalidate Engine</span>
+            <span>•</span>
+            <button
+              onClick={() => handleTabChange('about')}
+              className="text-[var(--accent-f1-red)] hover:underline cursor-pointer font-bold font-hud uppercase"
+            >
+              Why This Looks Like This (Design Statement)
+            </button>
+            <span>•</span>
+            <span className="text-[var(--text-secondary)]">
+              Unofficial fan application. F1, FORMULA ONE, and GRAND PRIX are trademarks of Formula One Licensing B.V.
+            </span>
+          </div>
+        </div>
+      </footer>
+
+      {/* Driver Deep-Dive Dossier Modal */}
+      <DriverProfileModal
+        driverId={selectedDriverProfileId}
+        isOpen={!!selectedDriverProfileId}
+        onClose={() => setSelectedDriverProfileId(null)}
+        session={latestSession}
+      />
+
+      {/* Personalization & Livery Modal */}
+      <PersonalizationModal
+        isOpen={isPersonalizationOpen}
+        onClose={() => setIsPersonalizationOpen(false)}
+        standings={driverStandings}
+        onThemeApplied={(teamId) => {
+          applyTeamLiveryTheme(teamId);
+        }}
+      />
+
+      {/* Mobile Bottom Tab Bar */}
+      <BottomNav
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onOpenSearch={() => setIsMobileSearchOpen(true)}
+      />
+
+      {/* Glance Mode Zen Overlay */}
+      {isGlanceModeOpen && (
+        <GlanceMode
+          session={latestSession}
+          intervals={intervals}
+          onClose={() => setIsGlanceModeOpen(false)}
+        />
+      )}
     </div>
   );
 }
