@@ -360,7 +360,7 @@ export default function PaddockView({
           {Object.entries(F1_TEAMS).map(([key, team]) => (
             <div
               key={key}
-              className="relative rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--border-hover)] transition-all p-5 overflow-hidden group"
+              className="relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--border-hover)] transition-all p-5 overflow-hidden group flex flex-col justify-between"
             >
               {/* Top Accent Strip */}
               <div
@@ -368,55 +368,116 @@ export default function PaddockView({
                 style={{ backgroundColor: team.color }}
               ></div>
 
-              <div className="space-y-3 pt-2">
-                <div className="flex items-center justify-between">
-                  <span
-                    className="px-2.5 py-0.5 rounded text-xs font-hud font-black uppercase tracking-wider"
-                    style={{
-                      backgroundColor: `${team.color}20`,
-                      color: team.color,
-                      border: `1px solid ${team.color}40`,
-                    }}
-                  >
-                    {team.name}
-                  </span>
-                  <span className="text-[11px] font-mono-num text-[var(--text-muted)]">
-                    {team.championships} Titles
-                  </span>
-                </div>
-
-                <h3 className="text-lg font-hud font-black uppercase text-[var(--text-primary)]">
-                  {team.fullName}
-                </h3>
-
-                <div className="space-y-1.5 text-xs text-[var(--text-secondary)] border-t border-[var(--border-subtle)] pt-3">
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Power Unit:</span>
-                    <span className="font-semibold text-[var(--text-primary)]">{team.powerUnit}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Headquarters:</span>
-                    <span>{team.base}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[var(--text-muted)]">Team Principal:</span>
-                    <span className="font-medium">{team.teamPrincipal}</span>
-                  </div>
-                </div>
-
-                {/* Livery palette preview */}
-                <div className="pt-2 flex items-center gap-2">
-                  <span className="text-[10px] uppercase font-hud text-[var(--text-muted)] font-bold">
-                    Official Livery:
-                  </span>
-                  <div className="flex items-center gap-1">
+              <div className="space-y-4 pt-1">
+                {/* Header Badge & White Logo */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
                     <span
-                      className="w-4 h-4 rounded-full border border-black/30"
+                      className="px-2.5 py-0.5 rounded text-xs font-hud font-black uppercase tracking-wider"
+                      style={{
+                        backgroundColor: `${team.color}20`,
+                        color: team.color,
+                        border: `1px solid ${team.color}40`,
+                      }}
+                    >
+                      {team.name}
+                    </span>
+                    {team.logoImageUrl && (
+                      <img
+                        src={team.logoImageUrl}
+                        alt={team.name}
+                        className="h-4 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity"
+                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                      />
+                    )}
+                  </div>
+                  <span className="text-[11px] font-mono-num font-bold text-[var(--text-muted)] bg-[var(--bg-tertiary)] px-2 py-0.5 rounded border border-[var(--border-subtle)]">
+                    {team.championships} {team.championships === 1 ? 'Title' : 'Titles'}
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="text-base font-hud font-black uppercase text-[var(--text-primary)] leading-tight">
+                    {team.fullName}
+                  </h3>
+                  {team.chassis && (
+                    <span className="text-[10px] font-mono-num text-[var(--accent-f1-red)] font-bold uppercase tracking-wider">
+                      CHASSIS: {team.chassis}
+                    </span>
+                  )}
+                </div>
+
+                {/* Scraped 2D Side Profile Car Render */}
+                {team.carImageUrl && (
+                  <div className="py-2 flex items-center justify-center bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-subtle)] group-hover:border-white/10 transition-colors">
+                    <img
+                      src={team.carImageUrl}
+                      alt={`${team.name} F1 Car`}
+                      className="h-16 sm:h-20 w-auto object-contain filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] transform group-hover:scale-105 transition-transform duration-300"
+                      onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                    />
+                  </div>
+                )}
+
+                {/* Scraped Constructor Specs Grid */}
+                <div className="grid grid-cols-2 gap-2 text-xs border-t border-[var(--border-subtle)] pt-3 text-[var(--text-secondary)]">
+                  <div className="p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60">
+                    <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold block">
+                      Power Unit
+                    </span>
+                    <span className="font-semibold text-[var(--text-primary)] truncate block">
+                      {team.powerUnit}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60">
+                    <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold block">
+                      Base / HQ
+                    </span>
+                    <span className="font-medium text-[var(--text-primary)] truncate block">
+                      {team.base}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60">
+                    <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold block">
+                      Team Chief
+                    </span>
+                    <span className="font-medium text-[var(--text-primary)] truncate block">
+                      {team.teamPrincipal}
+                    </span>
+                  </div>
+                  <div className="p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60">
+                    <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold block">
+                      Technical Chief
+                    </span>
+                    <span className="font-medium text-[var(--text-primary)] truncate block">
+                      {team.technicalChief || 'N/A'}
+                    </span>
+                  </div>
+                  {team.firstEntry && (
+                    <div className="col-span-2 p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60 flex items-center justify-between">
+                      <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold">
+                        First Entry
+                      </span>
+                      <span className="font-mono-num font-bold text-xs text-[var(--text-primary)]">
+                        {team.firstEntry}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Official Livery Color Palette */}
+                <div className="pt-1 flex items-center justify-between text-[10px]">
+                  <span className="font-hud uppercase text-[var(--text-muted)] font-bold">
+                    Livery Palette
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="w-3.5 h-3.5 rounded-full border border-black/30"
                       style={{ backgroundColor: team.color }}
                       title={`Primary: ${team.color}`}
                     ></span>
                     <span
-                      className="w-4 h-4 rounded-full border border-black/30"
+                      className="w-3.5 h-3.5 rounded-full border border-black/30"
                       style={{ backgroundColor: team.secondaryColor }}
                       title={`Secondary: ${team.secondaryColor}`}
                     ></span>

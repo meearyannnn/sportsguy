@@ -230,6 +230,9 @@ export interface TeamMeta {
   powerUnit: string;
   base: string;
   teamPrincipal: string;
+  technicalChief?: string;
+  chassis?: string;
+  firstEntry?: string;
   championships: number;
   drivers: string[];
   carImageUrl?: string;
