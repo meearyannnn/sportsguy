@@ -52,6 +52,7 @@ const DesignManifestoView = dynamic(() => import('@/components/f1/DesignManifest
 });
 const PersonalizationModal = dynamic(() => import('@/components/f1/PersonalizationModal'));
 const DriverProfileModal = dynamic(() => import('@/components/f1/DriverProfileModal'));
+const ConstructorDetailModal = dynamic(() => import('@/components/f1/ConstructorDetailModal'));
 const GlanceMode = dynamic(() => import('@/components/f1/GlanceMode'));
 import {
   getCalendar,
@@ -88,14 +89,17 @@ export default function ApexHome() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isPersonalizationOpen, setIsPersonalizationOpen] = useState<boolean>(false);
   const [selectedDriverProfileId, setSelectedDriverProfileId] = useState<string | null>(null);
+  const [selectedConstructorProfileId, setSelectedConstructorProfileId] = useState<string | null>(null);
   const [isGlanceModeOpen, setIsGlanceModeOpen] = useState<boolean>(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState<boolean>(false);
 
   // Mobile Hardware Back-Button & Swipe Gesture Stack Handler
   useMobileHistory({
-    hasOpenModal: Boolean(selectedDriverProfileId || isPersonalizationOpen || isGlanceModeOpen || isMobileSearchOpen),
+    hasOpenModal: Boolean(selectedConstructorProfileId || selectedDriverProfileId || isPersonalizationOpen || isGlanceModeOpen || isMobileSearchOpen),
     onDismissTopModal: () => {
-      if (selectedDriverProfileId) {
+      if (selectedConstructorProfileId) {
+        setSelectedConstructorProfileId(null);
+      } else if (selectedDriverProfileId) {
         setSelectedDriverProfileId(null);
       } else if (isPersonalizationOpen) {
         setIsPersonalizationOpen(false);
@@ -528,6 +532,7 @@ export default function ApexHome() {
                 driverStandings={driverStandings}
                 constructorStandings={constructorStandings}
                 onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+                onSelectConstructor={(constructorId) => setSelectedConstructorProfileId(constructorId)}
               />
             )}
 
@@ -579,6 +584,7 @@ export default function ApexHome() {
                 driverStandings={driverStandings}
                 constructorStandings={constructorStandings}
                 onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+                onSelectConstructor={(constructorId) => setSelectedConstructorProfileId(constructorId)}
                 onNavigateTab={handleTabChange}
               />
             )}
@@ -668,6 +674,15 @@ export default function ApexHome() {
         isOpen={!!selectedDriverProfileId}
         onClose={() => setSelectedDriverProfileId(null)}
         session={latestSession}
+      />
+
+      {/* Constructor Dossier Modal */}
+      <ConstructorDetailModal
+        constructorId={selectedConstructorProfileId}
+        isOpen={!!selectedConstructorProfileId}
+        onClose={() => setSelectedConstructorProfileId(null)}
+        onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+        constructorStandings={constructorStandings}
       />
 
       {/* Personalization & Livery Modal */}

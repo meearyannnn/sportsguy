@@ -212,16 +212,69 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
   },
 };
 
+// Aliases mapping for various API constructor IDs and historic/sponsor names
+const CONSTRUCTOR_ALIASES: Record<string, string> = {
+  audi: 'sauber',
+  audi_f1: 'sauber',
+  kick_sauber: 'sauber',
+  kick: 'sauber',
+  stake: 'sauber',
+  stake_f1_team_kick_sauber: 'sauber',
+  alfa: 'sauber',
+  alfa_romeo: 'sauber',
+  rb: 'rb',
+  racing_bulls: 'rb',
+  visa_cash_app_rb: 'rb',
+  alphatauri: 'rb',
+  toro_rosso: 'rb',
+  haas_f1_team: 'haas',
+  haas: 'haas',
+  alpine_f1_team: 'alpine',
+  alpine: 'alpine',
+  aston_martin_f1_team: 'aston_martin',
+  aston_martin_aramco: 'aston_martin',
+  aston_martin: 'aston_martin',
+  racing_point: 'aston_martin',
+  force_india: 'aston_martin',
+  williams_racing: 'williams',
+  williams_f1_team: 'williams',
+  williams: 'williams',
+  redbull: 'red_bull',
+  red_bull_racing: 'red_bull',
+  scuderia_ferrari: 'ferrari',
+  scuderia_ferrari_hp: 'ferrari',
+  mclaren_f1_team: 'mclaren',
+  mercedes_amg: 'mercedes',
+  cadillac_f1_team: 'cadillac',
+};
+
 export function getTeamMeta(constructorIdOrName: string): TeamMeta {
   if (!constructorIdOrName) return F1_TEAMS.ferrari;
-  const key = constructorIdOrName.toLowerCase().replace(/[\s-]+/g, '_');
+  const rawKey = constructorIdOrName.toLowerCase().trim();
+  const normalizedKey = rawKey.replace(/[\s-]+/g, '_');
   
-  if (F1_TEAMS[key]) return F1_TEAMS[key];
+  // 1. Direct match in alias map
+  if (CONSTRUCTOR_ALIASES[normalizedKey] && F1_TEAMS[CONSTRUCTOR_ALIASES[normalizedKey]]) {
+    return F1_TEAMS[CONSTRUCTOR_ALIASES[normalizedKey]];
+  }
+
+  // 2. Direct match in F1_TEAMS keys
+  if (F1_TEAMS[normalizedKey]) return F1_TEAMS[normalizedKey];
+
+  // 3. Fuzzy matching across keys, names, and full names
   for (const [id, team] of Object.entries(F1_TEAMS)) {
+    const tName = team.name.toLowerCase();
+    const fName = team.fullName.toLowerCase();
     if (
-      key.includes(id) ||
-      team.name.toLowerCase().includes(key) ||
-      key.includes(team.name.toLowerCase())
+      normalizedKey.includes(id) ||
+      id.includes(normalizedKey) ||
+      tName.includes(normalizedKey) ||
+      normalizedKey.includes(tName) ||
+      fName.includes(normalizedKey) ||
+      normalizedKey.includes(fName) ||
+      (normalizedKey.includes('audi') && (id === 'sauber' || team.name.toLowerCase().includes('sauber'))) ||
+      (normalizedKey.includes('kick') && (id === 'sauber' || team.name.toLowerCase().includes('sauber'))) ||
+      (normalizedKey.includes('stake') && (id === 'sauber' || team.name.toLowerCase().includes('sauber')))
     ) {
       return team;
     }
@@ -229,7 +282,7 @@ export function getTeamMeta(constructorIdOrName: string): TeamMeta {
 
   // Fallback default neutral cyan/racing accent
   return {
-    id: key,
+    id: normalizedKey,
     name: constructorIdOrName,
     fullName: constructorIdOrName,
     color: '#E10600',

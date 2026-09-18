@@ -22,6 +22,7 @@ interface PaddockViewProps {
   driverStandings: DriverStanding[];
   constructorStandings: ConstructorStanding[];
   onSelectDriver?: (driverId: string) => void;
+  onSelectConstructor?: (constructorId: string) => void;
   onNavigateTab?: (tab: NavTab) => void;
   initialSubTab?: 'h2h' | 'constructors' | 'drivers';
 }
@@ -30,6 +31,7 @@ export default function PaddockView({
   driverStandings,
   constructorStandings,
   onSelectDriver,
+  onSelectConstructor,
   onNavigateTab,
   initialSubTab = 'drivers',
 }: PaddockViewProps) {
@@ -360,7 +362,9 @@ export default function PaddockView({
           {Object.entries(F1_TEAMS).map(([key, team]) => (
             <div
               key={key}
-              className="relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--border-hover)] transition-all p-5 overflow-hidden group flex flex-col justify-between"
+              onClick={() => onSelectConstructor && onSelectConstructor(key)}
+              className="relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--accent-f1-red)]/60 hover:bg-[var(--bg-tertiary)] transition-all p-5 overflow-hidden group flex flex-col justify-between cursor-pointer select-none"
+              title={`Click to view full ${team.name} dossier`}
             >
               {/* Top Accent Strip */}
               <div

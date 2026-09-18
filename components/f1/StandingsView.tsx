@@ -14,12 +14,14 @@ interface StandingsViewProps {
   driverStandings: DriverStanding[];
   constructorStandings: ConstructorStanding[];
   onSelectDriver?: (driverId: string) => void;
+  onSelectConstructor?: (constructorId: string) => void;
 }
 
 export default function StandingsView({
   driverStandings,
   constructorStandings,
   onSelectDriver,
+  onSelectConstructor,
 }: StandingsViewProps) {
   const [tab, setTab] = useState<'drivers' | 'constructors'>('drivers');
   const [expandedDriverId, setExpandedDriverId] = useState<string | null>(null);
@@ -275,7 +277,9 @@ export default function StandingsView({
             return (
               <div
                 key={standing.Constructor.constructorId}
-                className="group relative grid grid-cols-12 gap-2 items-center px-3 py-3 hover:bg-[var(--bg-tertiary)] transition-colors"
+                onClick={() => onSelectConstructor && onSelectConstructor(standing.Constructor.constructorId)}
+                className="group relative grid grid-cols-12 gap-2 items-center px-3 py-3 hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer select-none"
+                title={`Click to view ${standing.Constructor.name} constructor dossier`}
               >
                 {/* 3px Team Livery Color Left Border Accent */}
                 <div
