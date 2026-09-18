@@ -621,13 +621,17 @@ export default function ApexHome() {
 
             {/* TAB: PRE-SEASON TESTING TRACKER */}
             {activeTab === 'testing' && (
-              <PreSeasonTestingView />
+              <PreSeasonTestingView
+                onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+                onSelectConstructor={(constructorId) => setSelectedConstructorProfileId(constructorId)}
+              />
             )}
 
             {/* TAB: PIT CREW LEADERBOARD */}
             {activeTab === 'pitcrew' && (
               <PitCrewLeaderboard
                 onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
+                onSelectConstructor={(constructorId) => setSelectedConstructorProfileId(constructorId)}
               />
             )}
 
