@@ -603,6 +603,7 @@ export default function ApexHome() {
                   session={latestSession}
                   initialWeather={weather}
                   initialIntervals={intervals}
+                  driverStandings={driverStandings}
                   onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
                   showFeed={true}
                   onToggleGlance={() => setIsGlanceModeOpen(true)}

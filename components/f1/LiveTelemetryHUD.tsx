@@ -22,12 +22,15 @@ import LiveUpdatesFeed from '@/components/f1/LiveUpdatesFeed';
 import FreshnessBadge from '@/components/f1/FreshnessBadge';
 import ContextualExplainer from '@/components/f1/ContextualExplainer';
 import { useAdaptiveTelemetry } from '@/lib/f1/useAdaptiveTelemetry';
+import TrackMapVisualizer from '@/components/f1/TrackMapVisualizer';
+import { DriverStanding } from '@/lib/f1/types';
 import { Wifi, WifiOff } from 'lucide-react';
 
 interface LiveTelemetryHUDProps {
   session: OpenF1Session | null;
   initialWeather: OpenF1Weather | null;
   initialIntervals: OpenF1Interval[];
+  driverStandings?: DriverStanding[];
   onSelectDriver?: (driverId: string) => void;
   showFeed?: boolean;
   onToggleGlance?: () => void;
@@ -37,6 +40,7 @@ export default function LiveTelemetryHUD({
   session,
   initialWeather,
   initialIntervals,
+  driverStandings = [],
   onSelectDriver,
   showFeed = true,
   onToggleGlance,
@@ -245,6 +249,16 @@ export default function LiveTelemetryHUD({
         </div>
 
         <div className="lg:col-span-6 space-y-4">
+          {/* Interactive Live Track Map Visualizer */}
+          <TrackMapVisualizer
+            circuitId={session?.circuit_short_name?.toLowerCase() || 'monza'}
+            circuitName={session?.circuit_short_name || 'Monza'}
+            driverStandings={driverStandings}
+            session={session}
+            intervals={intervals}
+            onSelectDriver={onSelectDriver}
+          />
+
           <div className="p-5 rounded border border-[var(--border-subtle)] bg-[var(--bg-secondary)] space-y-5">
             <div className="pb-4 border-b border-[var(--border-subtle)]">
               <div className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)]">
