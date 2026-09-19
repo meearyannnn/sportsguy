@@ -411,8 +411,8 @@ export default function ApexHome() {
         onToggleMobileSearch={() => setIsMobileSearchOpen((prev) => !prev)}
       />
 
-      {/* Main Content Area with Timing Tower Rail Signature Motif */}
-      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 timing-tower-rail ${latestSession ? 'is-live' : ''}`}>
+      {/* Main Content Area */}
+      <main className={`flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 ${activeTab === 'hub' ? `timing-tower-rail ${latestSession ? 'is-live' : ''}` : ''}`}>
         {/* Real Content-Shaped Skeleton with Pit-Wall Radio Phrasing */}
         {isLoading ? (
           <TimingLeaderboardSkeleton />

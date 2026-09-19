@@ -300,7 +300,7 @@ export default function GrandPrixDetailModal({
                                   : 'bg-amber-700 text-white'
                               }`}
                             >
-                              {idx === 0 ? '🏆 WINNER (P1)' : `PODIUM (P${idx + 1})`}
+                              {idx === 0 ? 'WINNER (P1)' : `PODIUM (P${idx + 1})`}
                             </span>
                             <span className="text-xs font-mono font-bold text-[var(--accent-f1-red)]">
                               +{res.points} PTS
@@ -406,7 +406,7 @@ export default function GrandPrixDetailModal({
                                     </span>
                                     {isFastest && (
                                       <span className="px-1.5 py-0.5 rounded text-[9px] font-hud font-bold uppercase bg-purple-500/20 text-purple-400 border border-purple-500/30" title="Fastest Lap Bonus Point">
-                                        ⚡ FL
+                                        FL
                                       </span>
                                     )}
                                   </div>

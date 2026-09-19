@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   JUNIOR_SERIES_DATABASE,
   JuniorSeriesData,
@@ -28,6 +28,7 @@ import {
   Clock,
   Search,
   SlidersHorizontal,
+  RefreshCw,
 } from 'lucide-react';
 
 type SeriesKey = 'f2' | 'f3' | 'academy';
@@ -79,8 +80,36 @@ export default function JuniorSeriesView() {
   const [activeSubTab, setActiveSubTab] = useState<ViewSubTab>('grid');
   const [driverSearch, setDriverSearch] = useState<string>('');
   const [selectedAcademyFilter, setSelectedAcademyFilter] = useState<string>('all');
+  const [seriesDataMap, setSeriesDataMap] = useState<Record<SeriesKey, JuniorSeriesData>>(JUNIOR_SERIES_DATABASE);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
 
-  const currentData: JuniorSeriesData = JUNIOR_SERIES_DATABASE[activeSeries];
+  const fetchLiveJuniorData = async (series: SeriesKey) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch(`/api/f1/junior-series?series=${series}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          setSeriesDataMap((prev) => ({
+            ...prev,
+            [series]: json.data,
+          }));
+          setLastSynced(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+      }
+    } catch (err) {
+      console.warn('Live junior series fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveJuniorData(activeSeries);
+  }, [activeSeries]);
+
+  const currentData: JuniorSeriesData = seriesDataMap[activeSeries];
 
   // Extract unique F1 Academies in current series for filter chips
   const academyOptions = Array.from(
@@ -118,10 +147,15 @@ export default function JuniorSeriesView() {
                 <GraduationCap className="w-3.5 h-3.5" />
                 <span>FIA FEEDER SERIES & ROAD TO F1</span>
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>2026 OFFICIAL FEEDS</span>
-              </span>
+              <button
+                onClick={() => fetchLiveJuniorData(activeSeries)}
+                disabled={isLoading}
+                title="Refresh live data from official FIA/F1 feeds"
+                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer"
+              >
+                <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+                <span>{isLoading ? 'SYNCING OFFICIAL FEEDS...' : lastSynced ? `LIVE SYNCED ${lastSynced}` : 'OFFICIAL LIVE FEEDS'}</span>
+              </button>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black font-hud uppercase tracking-tight text-[var(--text-primary)]">
