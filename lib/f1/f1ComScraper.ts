@@ -1,4 +1,5 @@
 import { NewsItem, NewsTag } from './newsTypes';
+import { getTeamMeta, getDriverHeadshot } from './teams';
 
 export interface F1ComDriverSummary {
   slug: string;
@@ -232,6 +233,30 @@ export async function fetchF1ComDrivers(): Promise<F1ComDriverSummary[]> {
   }
 }
 
+export function decodeHtmlEntities(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/&#x27;/gi, "'")
+    .replace(/&#x22;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#039;/g, "'")
+    .replace(/&apos;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&ndash;/gi, '–')
+    .replace(/&mdash;/gi, '—')
+    .replace(/&rsquo;/gi, '’')
+    .replace(/&lsquo;/gi, '‘')
+    .replace(/&rdquo;/gi, '”')
+    .replace(/&ldquo;/gi, '“')
+    .replace(/&hellip;/gi, '…')
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#([0-9]+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)));
+}
+
 /**
  * Scrapes detailed official driver stats from https://www.formula1.com/en/drivers/{slug}
  */
@@ -288,7 +313,11 @@ export async function fetchF1ComDriverStats(slug: string): Promise<F1ComDriverSt
       const beforeFlag = line.slice(Math.max(0, flagIdx - 50), flagIdx).trim();
       const nameMatch = beforeFlag.match(/([A-Z][a-z'-]+(?:\s+[A-Z][a-z'-]+)+)$/);
       if (nameMatch && !driverName) {
-        driverName = nameMatch[1];
+        driverName = nameMatch[1].replace(/^(?:Statistics|Biography|News|\s)+/i, '').trim();
+        const parts = driverName.split(/\s+/);
+        if (parts.length > 3) {
+          driverName = parts.slice(-2).join(' ');
+        }
       }
 
       const afterFlag = line.slice(flagIdx + 8).trim();
@@ -315,6 +344,7 @@ export async function fetchF1ComDriverStats(slug: string): Promise<F1ComDriverSt
     let seasonDNFs = '';
     let careerEntered = '';
     let careerPoints = '';
+    let careerWins = '';
     let careerPodiums = '';
     let careerPoles = '';
     let careerChampionships = '';
@@ -340,22 +370,30 @@ export async function fetchF1ComDriverStats(slug: string): Promise<F1ComDriverSt
       if (l === 'Podiums' && lines[i + 1]) careerPodiums = lines[i + 1];
       if (l === 'Pole Positions' && lines[i + 1]) careerPoles = lines[i + 1];
       if (l === 'World Championships' && lines[i + 1]) careerChampionships = lines[i + 1];
+      if (l === 'Highest Race Finish' && lines[i + 1]) {
+        const m = lines[i + 1].match(/1\s*\(x(\d+)\)/i);
+        if (m) {
+          careerWins = m[1];
+        } else if (lines[i + 1].trim() === '1') {
+          careerWins = '1';
+        }
+      }
     }
 
-    // Parse Highest Race Finish for career wins e.g. "1 (x8)"
-    let careerWins = '0';
-    const winMatch = clean.match(/Highest Race Finish\s*1\s*\(x(\d+)\)/i);
-    if (winMatch) {
-      careerWins = winMatch[1];
-    } else if (clean.includes('Highest Race Finish 1')) {
-      careerWins = '1';
+    if (!careerWins || careerWins === '0') {
+      const winMatch = clean.match(/Highest Race Finish[\s\S]{0,60}?1\s*\(x(\d+)\)/i);
+      if (winMatch) {
+        careerWins = winMatch[1];
+      } else if (/Highest Race Finish[\s\S]{0,30}?1(?!\d)/i.test(clean)) {
+        careerWins = '1';
+      }
     }
 
     // Extract official biography paragraphs
     const bioParagraphs: string[] = [];
     const pTags = html.match(/<p[^>]*>([\s\S]*?)<\/p>/gi) || [];
     for (const p of pTags) {
-      const text = p.replace(/<[^>]+>/g, '').trim();
+      const text = decodeHtmlEntities(p.replace(/<[^>]+>/g, '').trim());
       if (
         text.length > 80 &&
         !text.includes('Cookie') &&
@@ -369,7 +407,7 @@ export async function fetchF1ComDriverStats(slug: string): Promise<F1ComDriverSt
       }
     }
 
-    const biography = bioParagraphs.length > 0 ? bioParagraphs.slice(0, 3).join(' ') : '';
+    const biography = bioParagraphs.length > 0 ? decodeHtmlEntities(bioParagraphs.slice(0, 3).join(' ')) : '';
 
     const statsData: F1ComDriverStats = {
       slug: cleanSlug,
@@ -612,4 +650,386 @@ function hashString(str: string): number {
     hash |= 0;
   }
   return hash;
+}
+
+export interface F1ComPodiumEntry {
+  pos: number;
+  code: string;
+  name: string;
+  driverId: string;
+  team: string;
+  teamColor: string;
+  gap: string;
+  headshotUrl?: string;
+}
+
+export interface F1ComScrapedRace {
+  round: string;
+  grandPrix: string;
+  date: string;
+  winnerName: string;
+  winnerCode: string;
+  team: string;
+  laps: number;
+  time: string;
+  raceResultUrl: string;
+}
+
+export interface F1ComScrapedDriverStanding {
+  pos: number;
+  driverName: string;
+  driverCode: string;
+  nationality: string;
+  team: string;
+  points: string;
+}
+
+export interface F1ComScrapedConstructorStanding {
+  pos: number;
+  team: string;
+  points: string;
+}
+
+const raceResultsCache = {
+  timestamp: 0,
+  year: '',
+  races: [] as F1ComScrapedRace[],
+};
+
+const podiumsCache = {
+  timestamp: 0,
+  year: '',
+  podiums: {} as Record<string, F1ComPodiumEntry[]>,
+};
+
+const standingsCache = {
+  timestamp: 0,
+  year: '',
+  drivers: [] as F1ComScrapedDriverStanding[],
+  constructors: [] as F1ComScrapedConstructorStanding[],
+};
+
+function resolveScrapedDriverId(name: string, code: string): string {
+  const n = name.toLowerCase();
+  const c = code.toUpperCase();
+  if (n.includes('antonelli') || c === 'ANT') return 'antonelli';
+  if (n.includes('russell') || c === 'RUS') return 'russell';
+  if (n.includes('hamilton') || c === 'HAM') return 'hamilton';
+  if (n.includes('norris') || c === 'NOR') return 'norris';
+  if (n.includes('piastri') || c === 'PIA') return 'piastri';
+  if (n.includes('leclerc') || c === 'LEC') return 'leclerc';
+  if (n.includes('verstappen') || c === 'VER') return 'max_verstappen';
+  if (n.includes('hadjar') || c === 'HAD') return 'hadjar';
+  if (n.includes('alonso') || c === 'ALO') return 'alonso';
+  if (n.includes('sainz') || c === 'SAI') return 'sainz';
+  if (n.includes('bearman') || c === 'BEA') return 'bearman';
+  if (n.includes('lawson') || c === 'LAW') return 'lawson';
+  if (n.includes('tsunoda') || c === 'TSU') return 'tsunoda';
+  if (n.includes('albon') || c === 'ALB') return 'albon';
+  if (n.includes('gasly') || c === 'GAS') return 'gasly';
+  if (n.includes('ocon') || c === 'OCO') return 'ocon';
+  if (n.includes('stroll') || c === 'STR') return 'stroll';
+  if (n.includes('hulkenberg') || c === 'HUL') return 'hulkenberg';
+  if (n.includes('bortoleto') || c === 'BOR') return 'bortoleto';
+  if (n.includes('doohan') || c === 'DOO') return 'doohan';
+  return name.toLowerCase().replace(/[\s-]+/g, '_');
+}
+
+/**
+ * Scrapes official race results list from https://www.formula1.com/en/results.html/{year}/races.html
+ */
+export async function fetchF1ComRaceList(year = '2026'): Promise<F1ComScrapedRace[]> {
+  const now = Date.now();
+  if (
+    raceResultsCache.races.length > 0 &&
+    raceResultsCache.year === year &&
+    now - raceResultsCache.timestamp < CACHE_TTL_MS * 2
+  ) {
+    return raceResultsCache.races;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+    const res = await fetch(`https://www.formula1.com/en/results.html/${year}/races.html`, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      return raceResultsCache.races;
+    }
+
+    const html = await res.text();
+    const trMatches = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+    const list: F1ComScrapedRace[] = [];
+
+    for (let i = 1; i < trMatches.length; i++) {
+      const row = trMatches[i];
+      const linkMatch = row.match(/href="([^"]+)"/);
+      const raceResultUrl = linkMatch ? linkMatch[1] : '';
+
+      const cells = row.match(/<td[\s\S]*?<\/td>/gi) || [];
+      const texts = cells.map((c) => c.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+
+      if (texts.length >= 6) {
+        const rawGp = texts[0].replace(/Flag of [^\s]+\s*/i, '').trim();
+        const rawDriver = texts[2] || '';
+        const codeMatch = rawDriver.match(/([A-Z]{3})$/);
+        const winnerCode = codeMatch ? codeMatch[1] : '';
+        const winnerName = rawDriver.replace(/\s+[A-Z]{3}$/, '').trim();
+        const laps = parseInt(texts[4], 10) || 0;
+
+        list.push({
+          round: String(i),
+          grandPrix: rawGp,
+          date: texts[1],
+          winnerName,
+          winnerCode,
+          team: texts[3],
+          laps,
+          time: texts[5],
+          raceResultUrl,
+        });
+      }
+    }
+
+    if (list.length > 0) {
+      raceResultsCache.timestamp = now;
+      raceResultsCache.year = year;
+      raceResultsCache.races = list;
+    }
+
+    return list;
+  } catch (err) {
+    console.warn('Failed to scrape Formula1.com race results list:', err);
+    return raceResultsCache.races;
+  }
+}
+
+/**
+ * Scrapes official top-3 podiums for all completed races in parallel
+ */
+export async function fetchF1ComPodiums(year = '2026'): Promise<Record<string, F1ComPodiumEntry[]>> {
+  const now = Date.now();
+  if (
+    Object.keys(podiumsCache.podiums).length > 0 &&
+    podiumsCache.year === year &&
+    now - podiumsCache.timestamp < CACHE_TTL_MS * 2
+  ) {
+    return podiumsCache.podiums;
+  }
+
+  const races = await fetchF1ComRaceList(year);
+  if (races.length === 0) {
+    return podiumsCache.podiums;
+  }
+
+  const result: Record<string, F1ComPodiumEntry[]> = {};
+
+  // Fetch classifications in parallel batches of 5
+  for (let i = 0; i < races.length; i += 5) {
+    const batch = races.slice(i, i + 5);
+    await Promise.all(
+      batch.map(async (race) => {
+        if (!race.raceResultUrl) return;
+        try {
+          const detailUrl = `https://www.formula1.com${race.raceResultUrl}`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+          const detailRes = await fetch(detailUrl, {
+            signal: controller.signal,
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            },
+          });
+          clearTimeout(timeoutId);
+
+          if (!detailRes.ok) return;
+
+          const detailHtml = await detailRes.text();
+          const dRows = detailHtml.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+          const top3: F1ComPodiumEntry[] = [];
+
+          for (let p = 1; p <= 3 && p < dRows.length; p++) {
+            const cells = dRows[p].match(/<td[\s\S]*?<\/td>/gi) || [];
+            const texts = cells.map((c) => c.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+            if (texts.length >= 6) {
+              const pos = parseInt(texts[0], 10) || p;
+              const rawDriver = texts[2] || '';
+              const codeMatch = rawDriver.match(/([A-Z]{3})$/);
+              const code = codeMatch ? codeMatch[1] : '';
+              const name = rawDriver.replace(/\s+[A-Z]{3}$/, '').trim();
+              const team = texts[3] || '';
+              const gap = texts[5] || '';
+              const driverId = resolveScrapedDriverId(name, code);
+              const teamMeta = getTeamMeta(team);
+              const headshotUrl = getDriverHeadshot(driverId || code || name);
+
+              top3.push({
+                pos,
+                code,
+                name,
+                driverId,
+                team,
+                teamColor: teamMeta.color,
+                gap,
+                headshotUrl: headshotUrl || undefined,
+              });
+            }
+          }
+
+          if (top3.length > 0) {
+            result[race.round] = top3;
+          }
+        } catch (e) {
+          console.warn(`Notice scraping podium for round ${race.round}:`, e);
+        }
+      })
+    );
+  }
+
+  if (Object.keys(result).length > 0) {
+    podiumsCache.timestamp = now;
+    podiumsCache.year = year;
+    podiumsCache.podiums = result;
+  }
+
+  return Object.keys(result).length > 0 ? result : podiumsCache.podiums;
+}
+
+/**
+ * Scrapes official driver standings directly from https://www.formula1.com/en/results.html/{year}/drivers.html
+ */
+export async function fetchF1ComDriverStandings(year = '2026'): Promise<F1ComScrapedDriverStanding[]> {
+  const now = Date.now();
+  if (
+    standingsCache.drivers.length > 0 &&
+    standingsCache.year === year &&
+    now - standingsCache.timestamp < CACHE_TTL_MS * 2
+  ) {
+    return standingsCache.drivers;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`https://www.formula1.com/en/results.html/${year}/drivers.html`, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      },
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) return standingsCache.drivers;
+
+    const html = await res.text();
+    const trMatches = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+    const list: F1ComScrapedDriverStanding[] = [];
+
+    for (let i = 1; i < trMatches.length; i++) {
+      const cells = trMatches[i].match(/<td[\s\S]*?<\/td>/gi) || [];
+      const texts = cells.map((c) => c.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+      if (texts.length >= 5) {
+        const pos = parseInt(texts[0], 10) || i;
+        const rawDriver = texts[1] || '';
+        const codeMatch = rawDriver.match(/([A-Z]{3})$/);
+        const driverCode = codeMatch ? codeMatch[1] : '';
+        const driverName = rawDriver.replace(/\s+[A-Z]{3}$/, '').trim();
+        const nationality = texts[2] || '';
+        const team = texts[3] || '';
+        const points = texts[4] || '0';
+
+        list.push({
+          pos,
+          driverName,
+          driverCode,
+          nationality,
+          team,
+          points,
+        });
+      }
+    }
+
+    if (list.length > 0) {
+      standingsCache.timestamp = now;
+      standingsCache.year = year;
+      standingsCache.drivers = list;
+    }
+
+    return list;
+  } catch (e) {
+    console.warn('Failed to scrape F1.com driver standings:', e);
+    return standingsCache.drivers;
+  }
+}
+
+/**
+ * Scrapes official constructor standings directly from https://www.formula1.com/en/results.html/{year}/team.html
+ */
+export async function fetchF1ComConstructorStandings(year = '2026'): Promise<F1ComScrapedConstructorStanding[]> {
+  const now = Date.now();
+  if (
+    standingsCache.constructors.length > 0 &&
+    standingsCache.year === year &&
+    now - standingsCache.timestamp < CACHE_TTL_MS * 2
+  ) {
+    return standingsCache.constructors;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch(`https://www.formula1.com/en/results.html/${year}/team.html`, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+      },
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) return standingsCache.constructors;
+
+    const html = await res.text();
+    const trMatches = html.match(/<tr[\s\S]*?<\/tr>/gi) || [];
+    const list: F1ComScrapedConstructorStanding[] = [];
+
+    for (let i = 1; i < trMatches.length; i++) {
+      const cells = trMatches[i].match(/<td[\s\S]*?<\/td>/gi) || [];
+      const texts = cells.map((c) => c.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim());
+      if (texts.length >= 3) {
+        const pos = parseInt(texts[0], 10) || i;
+        const team = texts[1] || '';
+        const points = texts[2] || '0';
+
+        list.push({
+          pos,
+          team,
+          points,
+        });
+      }
+    }
+
+    if (list.length > 0) {
+      standingsCache.timestamp = now;
+      standingsCache.year = year;
+      standingsCache.constructors = list;
+    }
+
+    return list;
+  } catch (e) {
+    console.warn('Failed to scrape F1.com constructor standings:', e);
+    return standingsCache.constructors;
+  }
 }

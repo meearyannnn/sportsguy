@@ -171,9 +171,14 @@ export default function DriverProfileModal({
                 <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-hud font-bold uppercase tracking-wider bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-primary)]">
                     {profile.currentOrFinalTeam}
+                    {profile.teamTenure && (
+                      <span className="ml-1.5 text-[11px] font-medium text-[var(--text-muted)] font-mono-num">
+                        ({profile.teamTenure})
+                      </span>
+                    )}
                   </span>
                   <span className="text-xs text-[var(--text-muted)] font-mono-num">
-                    {profile.careerSpan}
+                    Career: {profile.careerSpan}
                   </span>
                   {profile.championships > 0 && (
                     <span className="px-2 py-0.5 rounded-full text-xs font-hud font-bold uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center gap-1">
@@ -347,110 +352,63 @@ export default function DriverProfileModal({
           {/* TAB 1: OVERVIEW & STATS */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              {/* Season Snapshot (for active drivers) */}
+              {/* 2026 Season Performance Overview (Simple & Elegant) */}
               {profile.currentSeasonSnapshot && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-hud font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5">
                       <Gauge className="w-3.5 h-3.5 text-[var(--accent-f1-red)]" />
-                      2026 Season Performance Snapshot
+                      2026 Season Performance
                     </h3>
-                    <span className="text-[11px] font-mono-num text-[var(--text-muted)]">
-                      {profile.currentSeasonSnapshot.pointsPerRace} PTS / Race
-                    </span>
                   </div>
 
-                  {/* Stat Chips */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 text-center">
-                    <div className="p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Wins</span>
-                      <div className="font-hud font-black text-xl text-[var(--text-primary)] font-mono-num mt-0.5">
+                  {/* 4-Stat Clean Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold block">
+                        Championship Standing
+                      </span>
+                      <div className="font-hud font-black text-2xl text-[var(--accent-f1-red)] font-mono-num mt-1">
+                        P{profile.currentSeasonSnapshot.currentRank}
+                      </div>
+                      <div className="text-[10px] text-[var(--text-secondary)] font-mono-num mt-0.5">
+                        {profile.currentSeasonSnapshot.points} Points
+                      </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold block">
+                        Grand Prix Wins
+                      </span>
+                      <div className="font-hud font-black text-2xl text-amber-400 font-mono-num mt-1">
                         {profile.currentSeasonSnapshot.wins}
                       </div>
+                      <div className="text-[10px] text-[var(--text-secondary)] font-mono-num mt-0.5">
+                        {profile.currentSeasonSnapshot.wins === 1 ? '1 Victory' : `${profile.currentSeasonSnapshot.wins} Victories`}
+                      </div>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Podiums</span>
-                      <div className="font-hud font-black text-xl text-amber-400 font-mono-num mt-0.5">
+                    <div className="p-3.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold block">
+                        Podium Finishes
+                      </span>
+                      <div className="font-hud font-black text-2xl text-emerald-400 font-mono-num mt-1">
                         {profile.currentSeasonSnapshot.podiums}
                       </div>
+                      <div className="text-[10px] text-[var(--text-secondary)] font-mono-num mt-0.5">
+                        Top 3 Results
+                      </div>
                     </div>
 
-                    <div className="p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Poles</span>
-                      <div className="font-hud font-black text-xl text-[var(--text-primary)] font-mono-num mt-0.5">
+                    <div className="p-3.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold block">
+                        Pole Positions
+                      </span>
+                      <div className="font-hud font-black text-2xl text-purple-400 font-mono-num mt-1">
                         {profile.currentSeasonSnapshot.poles}
                       </div>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Fastest Laps</span>
-                      <div className="font-hud font-black text-xl text-purple-400 font-mono-num mt-0.5">
-                        {profile.currentSeasonSnapshot.fastestLaps}
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">Avg Finish</span>
-                      <div className="font-hud font-black text-xl text-[var(--text-primary)] font-mono-num mt-0.5">
-                        P{profile.currentSeasonSnapshot.avgFinish}
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                      <span className="text-[10px] text-[var(--text-muted)] uppercase font-semibold">DNFs</span>
-                      <div className="font-hud font-black text-xl text-rose-400 font-mono-num mt-0.5">
-                        {profile.currentSeasonSnapshot.dnfs}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Teammate H2H & Last 5 Races Strip */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-                    {/* Teammate Bar */}
-                    <div className="p-4 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] space-y-2">
-                      <div className="flex justify-between text-xs font-hud font-bold uppercase">
-                        <span>Teammate Duel vs {profile.currentSeasonSnapshot.teammateH2H.teammateName}</span>
-                        <span className="text-amber-400 font-mono-num">{profile.currentSeasonSnapshot.teammateH2H.medianGapSeconds}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs font-mono-num pt-1">
-                        <div className="p-2 rounded bg-[var(--bg-secondary)] flex justify-between">
-                          <span className="text-[var(--text-muted)]">Quali:</span>
-                          <span className="font-bold">{profile.currentSeasonSnapshot.teammateH2H.qualiScore}</span>
-                        </div>
-                        <div className="p-2 rounded bg-[var(--bg-secondary)] flex justify-between">
-                          <span className="text-[var(--text-muted)]">Race:</span>
-                          <span className="font-bold">{profile.currentSeasonSnapshot.teammateH2H.raceScore}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Last 5 Races Strip */}
-                    <div className="p-4 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-subtle)] space-y-2">
-                      <div className="text-xs font-hud font-bold uppercase text-[var(--text-muted)]">
-                        Recent 5 Grands Prix Form Strip
-                      </div>
-                      <div className="flex items-center justify-between gap-1.5">
-                        {profile.currentSeasonSnapshot.last5Races.map((r, i) => (
-                          <div
-                            key={i}
-                            className={`flex-1 p-2 rounded-lg text-center border font-mono-num ${
-                              r.isWin
-                                ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                                : r.isPodium
-                                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
-                                : r.isPoints
-                                ? 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300'
-                                : 'bg-zinc-800/40 border-zinc-700/40 text-zinc-400'
-                            }`}
-                          >
-                            <div className="font-black text-sm">P{r.finishPos}</div>
-                            <div className="text-[9px] truncate">{r.raceName.slice(0, 7)}</div>
-                            <div className="text-[9px] font-bold">
-                              {r.delta > 0 ? `+${r.delta}` : r.delta}
-                            </div>
-                          </div>
-                        ))}
+                      <div className="text-[10px] text-[var(--text-secondary)] font-mono-num mt-0.5">
+                        Qualifying P1
                       </div>
                     </div>
                   </div>
@@ -500,7 +458,7 @@ export default function DriverProfileModal({
                       {profile.careerTotals.poles}
                     </div>
                     <div className="text-[10px] text-[var(--text-secondary)] font-mono-num mt-0.5">
-                      {profile.careerTotals.fastestLaps} Fastest Laps
+                      Career Poles
                     </div>
                   </div>
 
@@ -535,10 +493,10 @@ export default function DriverProfileModal({
                     Milestone Firsts & Career Peaks
                   </div>
                   <div className="space-y-1 text-[var(--text-secondary)]">
-                    <div className="flex justify-between"><span className="text-[var(--text-muted)]">Debut:</span> <span className="font-bold text-[var(--text-primary)]">{profile.firstsAndBests.firstRace}</span></div>
-                    <div className="flex justify-between"><span className="text-[var(--text-muted)]">First Win:</span> <span className="font-bold text-amber-400">{profile.firstsAndBests.firstWin}</span></div>
+                    <div className="flex justify-between"><span className="text-[var(--text-muted)]">Debut:</span> <span className="font-bold text-[var(--text-primary)]">{profile.firstsAndBests.firstRace || 'Official F1 Debut'}</span></div>
+                    <div className="flex justify-between"><span className="text-[var(--text-muted)]">First Win:</span> <span className="font-bold text-amber-400">{profile.firstsAndBests.firstWin && profile.firstsAndBests.firstWin !== '—' && profile.firstsAndBests.firstWin !== 'Grand Prix Victory' ? profile.firstsAndBests.firstWin : '—'}</span></div>
                     <div className="flex justify-between"><span className="text-[var(--text-muted)]">Most Wins in Season:</span> <span className="font-bold text-emerald-400">{profile.careerTotals.mostWinsInSeason}</span></div>
-                    <div className="flex justify-between"><span className="text-[var(--text-muted)]">Best Title Finish:</span> <span className="font-bold text-[var(--accent-f1-red)]">P{profile.careerTotals.bestSeasonRank}</span></div>
+                    <div className="flex justify-between"><span className="text-[var(--text-muted)]">Best Title Finish:</span> <span className="font-bold text-[var(--accent-f1-red)]">{profile.careerTotals.bestSeasonRank && profile.careerTotals.bestSeasonRank > 0 ? `P${profile.careerTotals.bestSeasonRank}` : 'Rookie Season'}</span></div>
                   </div>
                 </div>
               </div>
@@ -649,30 +607,20 @@ export default function DriverProfileModal({
                           </div>
                         </div>
 
-                        {/* Inline Race Breakdown if expanded */}
-                        {isExpanded && (
+                        {/* Inline Race Breakdown if real race breakdown is present */}
+                        {isExpanded && item.races && item.races.length > 0 && (
                           <div className="p-4 border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)]/50 text-xs font-mono-num space-y-1">
                             <div className="text-[10px] uppercase font-hud font-bold text-[var(--text-muted)] flex justify-between mb-2">
                               <span>Round & Grand Prix</span>
                               <span>Grid → Finish</span>
                             </div>
                             <div className="space-y-1">
-                              <div className="flex justify-between py-1 border-b border-[var(--border-subtle)]/50">
-                                <span>R1: Bahrain GP</span>
-                                <span>P1 → <span className="font-bold text-amber-400">P1 (25 PTS)</span></span>
-                              </div>
-                              <div className="flex justify-between py-1 border-b border-[var(--border-subtle)]/50">
-                                <span>R2: Saudi Arabian GP</span>
-                                <span>P2 → <span className="font-bold text-emerald-400">P2 (18 PTS)</span></span>
-                              </div>
-                              <div className="flex justify-between py-1 border-b border-[var(--border-subtle)]/50">
-                                <span>R3: Australian GP</span>
-                                <span>P1 → <span className="font-bold text-rose-400">DNF (Brakes)</span></span>
-                              </div>
-                              <div className="flex justify-between py-1">
-                                <span>R4: Japanese GP</span>
-                                <span>P1 → <span className="font-bold text-amber-400">P1 (26 PTS)</span></span>
-                              </div>
+                              {item.races.map((r, rIdx) => (
+                                <div key={rIdx} className="flex justify-between py-1 border-b border-[var(--border-subtle)]/50 last:border-0">
+                                  <span>R{r.round}: {r.raceName}</span>
+                                  <span>P{r.grid} → <span className={`font-bold ${r.finish === 1 ? 'text-amber-400' : r.finish <= 3 ? 'text-emerald-400' : 'text-[var(--text-primary)]'}`}>P{r.finish} ({r.points} PTS)</span></span>
+                                </div>
+                              ))}
                             </div>
                           </div>
                         )}

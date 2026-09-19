@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Race } from '@/lib/f1/types';
-import { getDriverHeadshot } from '@/lib/f1/teams';
+import { getDriverHeadshot, getTeamMeta } from '@/lib/f1/teams';
+import { getRaceResults } from '@/lib/f1/jolpica';
 import GrandPrixDetailModal from './GrandPrixDetailModal';
 import {
   Calendar,
@@ -27,71 +28,17 @@ interface CalendarViewProps {
   onViewResults?: (round: string) => void;
 }
 
-// Fallback podium mock data for past 2026 races
-const MOCK_PAST_PODIUMS: Record<string, Array<{ pos: number; code: string; name: string; teamColor: string; gap: string }>> = {
-  '1': [
-    { pos: 1, code: 'VER', name: 'Max Verstappen', teamColor: '#3671C6', gap: '1:31:44.742' },
-    { pos: 2, code: 'LEC', name: 'Charles Leclerc', teamColor: '#E8002D', gap: '+2.456s' },
-    { pos: 3, code: 'NOR', name: 'Lando Norris', teamColor: '#FF8000', gap: '+5.129s' },
-  ],
-  '2': [
-    { pos: 1, code: 'HAM', name: 'Lewis Hamilton', teamColor: '#E8002D', gap: '1:28:22.418' },
-    { pos: 2, code: 'PIA', name: 'Oscar Piastri', teamColor: '#FF8000', gap: '+1.189s' },
-    { pos: 3, code: 'RUS', name: 'George Russell', teamColor: '#27F4D2', gap: '+4.321s' },
-  ],
-  '3': [
-    { pos: 1, code: 'NOR', name: 'Lando Norris', teamColor: '#FF8000', gap: '1:34:01.290' },
-    { pos: 2, code: 'VER', name: 'Max Verstappen', teamColor: '#3671C6', gap: '+0.892s' },
-    { pos: 3, code: 'LEC', name: 'Charles Leclerc', teamColor: '#E8002D', gap: '+3.441s' },
-  ],
-  '4': [
-    { pos: 1, code: 'LEC', name: 'Charles Leclerc', teamColor: '#E8002D', gap: '1:29:10.501' },
-    { pos: 2, code: 'SAI', name: 'Carlos Sainz', teamColor: '#64C4FF', gap: '+2.110s' },
-    { pos: 3, code: 'HAM', name: 'Lewis Hamilton', teamColor: '#E8002D', gap: '+6.782s' },
-  ],
-  '5': [
-    { pos: 1, code: 'PIA', name: 'Oscar Piastri', teamColor: '#FF8000', gap: '1:25:34.908' },
-    { pos: 2, code: 'VER', name: 'Max Verstappen', teamColor: '#3671C6', gap: '+1.450s' },
-    { pos: 3, code: 'RUS', name: 'George Russell', teamColor: '#27F4D2', gap: '+8.102s' },
-  ],
-  '6': [
-    { pos: 1, code: 'VER', name: 'Max Verstappen', teamColor: '#3671C6', gap: '1:39:15.820' },
-    { pos: 2, code: 'NOR', name: 'Lando Norris', teamColor: '#FF8000', gap: '+3.291s' },
-    { pos: 3, code: 'LEC', name: 'Charles Leclerc', teamColor: '#E8002D', gap: '+4.901s' },
-  ],
-  '7': [
-    { pos: 1, code: 'LEC', name: 'Charles Leclerc', teamColor: '#E8002D', gap: '1:41:20.109' },
-    { pos: 2, code: 'HAM', name: 'Lewis Hamilton', teamColor: '#E8002D', gap: '+0.540s' },
-    { pos: 3, code: 'PIA', name: 'Oscar Piastri', teamColor: '#FF8000', gap: '+2.301s' },
-  ],
-  '8': [
-    { pos: 1, code: 'NOR', name: 'Lando Norris', teamColor: '#FF8000', gap: '1:30:45.210' },
-    { pos: 2, code: 'VER', name: 'Max Verstappen', teamColor: '#3671C6', gap: '+1.982s' },
-    { pos: 3, code: 'RUS', name: 'George Russell', teamColor: '#27F4D2', gap: '+7.410s' },
-  ],
-  '9': [
-    { pos: 1, code: 'HAM', name: 'Lewis Hamilton', teamColor: '#E8002D', gap: '1:22:46.882' },
-    { pos: 2, code: 'NOR', name: 'Lando Norris', teamColor: '#FF8000', gap: '+1.312s' },
-    { pos: 3, code: 'VER', name: 'Max Verstappen', teamColor: '#3671C6', gap: '+3.090s' },
-  ],
-  '10': [
-    { pos: 1, code: 'RUS', name: 'George Russell', teamColor: '#27F4D2', gap: '1:24:19.450' },
-    { pos: 2, code: 'LEC', name: 'Charles Leclerc', teamColor: '#E8002D', gap: '+0.910s' },
-    { pos: 3, code: 'SAI', name: 'Carlos Sainz', teamColor: '#64C4FF', gap: '+4.120s' },
-  ],
-  '11': [
-    { pos: 1, code: 'VER', name: 'Max Verstappen', teamColor: '#3671C6', gap: '1:27:09.112' },
-    { pos: 2, code: 'PIA', name: 'Oscar Piastri', teamColor: '#FF8000', gap: '+2.880s' },
-    { pos: 3, code: 'NOR', name: 'Lando Norris', teamColor: '#FF8000', gap: '+3.990s' },
-  ],
-  '12': [
-    { pos: 1, code: 'HAM', name: 'Lewis Hamilton', teamColor: '#E8002D', gap: '1:21:52.309' },
-    { pos: 2, code: 'LEC', name: 'Charles Leclerc', teamColor: '#E8002D', gap: '+1.102s' },
-    { pos: 3, code: 'VER', name: 'Max Verstappen', teamColor: '#3671C6', gap: '+5.412s' },
-  ]
-};
+export interface PodiumEntry {
+  pos: number;
+  code: string;
+  name: string;
+  driverId: string;
+  teamColor: string;
+  gap: string;
+}
 
 export default function CalendarView({
+
   races,
   useLocalTime,
   onSelectRace,
@@ -100,6 +47,7 @@ export default function CalendarView({
   const [filter, setFilter] = useState<'all' | 'upcoming' | 'completed' | 'sprint'>('all');
   const [search, setSearch] = useState('');
   const [selectedModalRace, setSelectedModalRace] = useState<Race | null>(null);
+  const [livePodiums, setLivePodiums] = useState<Record<string, PodiumEntry[]>>({});
 
   const now = new Date().getTime();
 
@@ -116,6 +64,50 @@ export default function CalendarView({
       raceTime,
     };
   });
+
+  // Dynamically fetch live scraped F1 podiums + Jolpica race results (No hardcoding)
+  useEffect(() => {
+    let isMounted = true;
+
+    // 1. Fetch live scraped official podiums from Formula1.com
+    fetch('/api/f1/podiums')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted || !data?.podiums) return;
+        setLivePodiums((prev) => ({
+          ...prev,
+          ...data.podiums,
+        }));
+      })
+      .catch((err) => console.warn('Official F1 scraper podiums notice:', err));
+
+    // 2. Fetch live results from Jolpica for past races
+    const pastRaces = categorizedRaces.filter((r) => r.isPast);
+    pastRaces.forEach((race) => {
+      getRaceResults(race.season || '2026', race.round).then((res) => {
+        if (!isMounted || !res?.results || res.results.length === 0) return;
+        const top3: PodiumEntry[] = res.results.slice(0, 3).map((r) => {
+          const teamMeta = getTeamMeta(r.Constructor?.constructorId || '');
+          return {
+            pos: parseInt(r.position, 10),
+            code: r.Driver.code || (r.Driver.familyName.slice(0, 3).toUpperCase()),
+            name: `${r.Driver.givenName} ${r.Driver.familyName}`,
+            driverId: r.Driver.driverId,
+            teamColor: teamMeta.color,
+            gap: r.Time?.time || (r.position === '1' ? 'WINNER' : r.status),
+          };
+        });
+        setLivePodiums((prev) => ({
+          ...prev,
+          [race.round]: top3,
+        }));
+      });
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [races]);
 
   // Next upcoming race
   const nextRace = categorizedRaces.find((r) => !r.isPast) || categorizedRaces[0];
@@ -334,7 +326,7 @@ export default function CalendarView({
       {/* ==================== ROUND CARDS GRID ==================== */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredRaces.map((race) => {
-          const mockPodium = MOCK_PAST_PODIUMS[race.round];
+          const podium = livePodiums[race.round];
 
           return (
             <div
@@ -386,36 +378,62 @@ export default function CalendarView({
                       <span className="text-[10px] font-mono text-emerald-400">CLASSIFICATION</span>
                     </div>
 
-                    {mockPodium ? (
+                    {podium && podium.length > 0 ? (
                       <div className="grid grid-cols-3 gap-2 bg-[var(--bg-tertiary)] p-2 rounded-lg border border-[var(--border-subtle)]">
-                        {mockPodium.map((p) => {
-                          const posBadgeBg = p.pos === 1 ? 'bg-amber-400 text-black font-black' : p.pos === 2 ? 'bg-slate-300 text-black font-black' : 'bg-amber-700 text-white font-black';
+                        {podium.map((p) => {
+                          const posBadgeBg =
+                            p.pos === 1
+                              ? 'bg-amber-400 text-black font-black'
+                              : p.pos === 2
+                              ? 'bg-slate-300 text-black font-black'
+                              : 'bg-amber-700 text-white font-black';
+                          const headshot = getDriverHeadshot(p.driverId || p.code || p.name);
 
                           return (
-                            <div key={p.pos} className="flex flex-col items-center text-center p-1 rounded bg-[var(--bg-primary)]/50 relative">
-                              <span className={`w-3.5 h-3.5 rounded ${posBadgeBg} text-[8px] font-mono absolute -top-1 -left-1 flex items-center justify-center`}>
+                            <div
+                              key={p.pos}
+                              className="flex flex-col items-center text-center p-1.5 rounded-lg bg-[var(--bg-primary)]/60 relative border border-[var(--border-subtle)]/50 hover:border-[var(--border-hover)] transition-all"
+                            >
+                              <span
+                                className={`w-4 h-4 rounded ${posBadgeBg} text-[9px] font-mono absolute -top-1 -left-1 flex items-center justify-center z-10 shadow-sm`}
+                              >
                                 P{p.pos}
                               </span>
 
-                              <DriverAvatar
-                                driverId={p.code.toLowerCase()}
-                                driverName={p.name}
-                                permanentNumber={p.pos}
-                                teamColor={p.teamColor}
-                                size="sm"
-                                mode="photo"
-                                className="mb-1 shrink-0"
-                              />
+                              {headshot ? (
+                                <img
+                                  src={headshot}
+                                  alt={p.name}
+                                  className="w-9 h-9 rounded-lg object-cover object-top border border-[var(--border-subtle)] mb-1 shrink-0 bg-[var(--bg-tertiary)] shadow-sm"
+                                  onError={(e) => {
+                                    (e.target as HTMLElement).style.display = 'none';
+                                  }}
+                                />
+                              ) : (
+                                <DriverAvatar
+                                  driverId={p.driverId || p.code.toLowerCase()}
+                                  driverName={p.name}
+                                  permanentNumber={p.pos}
+                                  teamColor={p.teamColor}
+                                  size="sm"
+                                  mode="photo"
+                                  className="mb-1 shrink-0"
+                                />
+                              )}
 
-                              <div className="font-hud font-bold text-xs text-[var(--text-primary)]">{p.code}</div>
-                              <div className="text-[9px] font-mono text-[var(--text-muted)] truncate w-full">{p.gap}</div>
+                              <div className="font-hud font-bold text-xs text-[var(--text-primary)] leading-tight">
+                                {p.code}
+                              </div>
+                              <div className="text-[10px] font-mono text-[var(--text-muted)] truncate w-full mt-0.5">
+                                {p.gap}
+                              </div>
                             </div>
                           );
                         })}
                       </div>
                     ) : (
-                      <div className="p-2.5 rounded bg-[var(--bg-tertiary)] text-center text-xs font-mono text-emerald-400">
-                        Official Results Homologated ✓
+                      <div className="p-2.5 rounded bg-[var(--bg-tertiary)] text-center text-xs font-mono text-[var(--text-muted)] animate-pulse">
+                        Awaiting Official FIA Classification...
                       </div>
                     )}
                   </div>

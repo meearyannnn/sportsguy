@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getDriverMedia, DriverMedia } from '@/lib/f1/wikimedia';
+import { getDriverHeadshot } from '@/lib/f1/teams';
 import DriverIdentityCard from './DriverIdentityCard';
 
 interface DriverAvatarProps {
@@ -27,7 +28,10 @@ export default function DriverAvatar({
 }: DriverAvatarProps) {
   const [media, setMedia] = useState<DriverMedia | null>(null);
   const [hasError, setHasError] = useState(false);
+  const [headshotError, setHeadshotError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  const officialHeadshot = getDriverHeadshot(driverId) || getDriverHeadshot(driverName);
 
   useEffect(() => {
     let isMounted = true;
@@ -74,7 +78,8 @@ export default function DriverAvatar({
     );
   }
 
-  const hasImage = Boolean(media?.thumbUrl) && !hasError;
+  const photoUrl = (!headshotError && officialHeadshot) ? officialHeadshot : (!hasError && media?.thumbUrl ? media.thumbUrl : '');
+  const hasImage = Boolean(photoUrl);
 
   return (
     <div className={`flex flex-col items-center ${className}`}>
@@ -88,10 +93,16 @@ export default function DriverAvatar({
       >
         {hasImage ? (
           <img
-            src={media?.thumbUrl}
+            src={photoUrl}
             alt={`${driverName} portrait`}
             className="w-full h-full object-cover object-top transition-opacity duration-300"
-            onError={() => setHasError(true)}
+            onError={() => {
+              if (photoUrl === officialHeadshot) {
+                setHeadshotError(true);
+              } else {
+                setHasError(true);
+              }
+            }}
             loading="lazy"
           />
         ) : (

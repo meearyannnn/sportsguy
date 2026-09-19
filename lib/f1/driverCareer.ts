@@ -1,6 +1,7 @@
 import { Driver, RaceResult } from './types';
 import { getTeamMeta } from './teams';
-import { fetchF1ComDriverStats } from './f1ComScraper';
+import { fetchF1ComDriverStats, decodeHtmlEntities } from './f1ComScraper';
+import { getSeason2026Metrics } from './season2026Data';
 
 export interface DriverSeasonEntry {
   season: number;
@@ -50,6 +51,7 @@ export interface DriverCareerProfile {
   age: number;
   isActive: boolean;
   careerSpan: string; // e.g. "2007 – Present" or "1984 – 1994"
+  teamTenure?: string; // e.g. "2025 – Present" with current team
   currentOrFinalTeam: string;
   teamColor: string;
   teamSecondaryColor: string;
@@ -91,19 +93,19 @@ export interface DriverCareerProfile {
     wins: number;
     podiums: number;
     poles: number;
-    fastestLaps: number;
-    dnfs: number;
-    avgFinish: number;
-    avgGrid: number;
-    pointsPerRace: number;
-    teammateH2H: {
+    fastestLaps?: number;
+    dnfs?: number;
+    avgFinish?: number;
+    avgGrid?: number;
+    pointsPerRace?: number;
+    teammateH2H?: {
       teammateName: string;
       qualiScore: string;
       raceScore: string;
       pointsSplit: [number, number];
       medianGapSeconds: string;
     };
-    last5Races: Array<{
+    last5Races?: Array<{
       raceName: string;
       finishPos: number;
       gridPos: number;
@@ -118,14 +120,78 @@ export interface DriverCareerProfile {
   circuitRecords: DriverCircuitStat[];
 }
 
-// In-memory cache for career profiles
-const careerCache = new Map<string, DriverCareerProfile>();
+// In-memory cache for career profiles with 5-minute TTL
+const careerCache = new Map<string, { timestamp: number; profile: DriverCareerProfile }>();
+const CAREER_CACHE_TTL = 5 * 60 * 1000;
+
+const TEAMMATES_2026: Record<string, string> = {
+  antonelli: 'George Russell',
+  kimi_antonelli: 'George Russell',
+  russell: 'Andrea Kimi Antonelli',
+  george_russell: 'Andrea Kimi Antonelli',
+  hamilton: 'Charles Leclerc',
+  lewis_hamilton: 'Charles Leclerc',
+  leclerc: 'Lewis Hamilton',
+  charles_leclerc: 'Lewis Hamilton',
+  norris: 'Oscar Piastri',
+  lando_norris: 'Oscar Piastri',
+  piastri: 'Lando Norris',
+  oscar_piastri: 'Lando Norris',
+  verstappen: 'Isack Hadjar',
+  max_verstappen: 'Isack Hadjar',
+  hadjar: 'Max Verstappen',
+  isack_hadjar: 'Max Verstappen',
+  lawson: 'Arvid Lindblad',
+  liam_lawson: 'Arvid Lindblad',
+  lindblad: 'Liam Lawson',
+  arvid_lindblad: 'Liam Lawson',
+  gasly: 'Franco Colapinto',
+  pierre_gasly: 'Franco Colapinto',
+  colapinto: 'Pierre Gasly',
+  franco_colapinto: 'Pierre Gasly',
+  doohan: 'Pierre Gasly',
+  jack_doohan: 'Pierre Gasly',
+  albon: 'Carlos Sainz',
+  alexander_albon: 'Carlos Sainz',
+  sainz: 'Alexander Albon',
+  carlos_sainz: 'Alexander Albon',
+  alonso: 'Lance Stroll',
+  fernando_alonso: 'Lance Stroll',
+  stroll: 'Fernando Alonso',
+  lance_stroll: 'Fernando Alonso',
+  hulkenberg: 'Gabriel Bortoleto',
+  nico_hulkenberg: 'Gabriel Bortoleto',
+  bortoleto: 'Nico Hülkenberg',
+  gabriel_bortoleto: 'Nico Hülkenberg',
+  bearman: 'Esteban Ocon',
+  oliver_bearman: 'Esteban Ocon',
+  ocon: 'Oliver Bearman',
+  esteban_ocon: 'Oliver Bearman',
+};
 
 export async function getDriverProfile(driverId: string): Promise<DriverCareerProfile> {
   const normalizedId = driverId.toLowerCase().replace(/[\s-]+/g, '_');
+  const now = Date.now();
 
-  if (careerCache.has(normalizedId)) {
-    return careerCache.get(normalizedId)!;
+  // If in browser, fetch from our server-side API to bypass CORS and get live scraped data
+  if (typeof window !== 'undefined') {
+    try {
+      const res = await fetch(`/api/f1/driver-profile?driverId=${encodeURIComponent(normalizedId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.profile) {
+          careerCache.set(normalizedId, { timestamp: now, profile: data.profile });
+          return data.profile;
+        }
+      }
+    } catch (e) {
+      console.warn('Driver profile client fetch notice:', e);
+    }
+  }
+
+  const cached = careerCache.get(normalizedId);
+  if (cached && now - cached.timestamp < CAREER_CACHE_TTL) {
+    return cached.profile;
   }
 
   const profile = buildDriverProfile(normalizedId);
@@ -164,7 +230,6 @@ export async function getDriverProfile(driverId: string): Promise<DriverCareerPr
 
       if (scrapedStats.dateOfBirth) {
         profile.birthDate = scrapedStats.dateOfBirth;
-        profile.age = calculateAge(scrapedStats.dateOfBirth);
       }
 
       if (scrapedStats.placeOfBirth) {
@@ -172,63 +237,171 @@ export async function getDriverProfile(driverId: string): Promise<DriverCareerPr
       }
 
       if (scrapedStats.biography && scrapedStats.biography.length > 20) {
-        profile.biography = scrapedStats.biography;
+        profile.biography = decodeHtmlEntities(scrapedStats.biography);
       }
 
       if (scrapedStats.careerChampionships && !isNaN(parseInt(scrapedStats.careerChampionships))) {
-        profile.championships = parseInt(scrapedStats.careerChampionships, 10);
+        profile.championships = Math.max(profile.championships, parseInt(scrapedStats.careerChampionships, 10));
       }
 
       if (scrapedStats.careerWins && !isNaN(parseInt(scrapedStats.careerWins))) {
-        profile.careerTotals.wins = parseInt(scrapedStats.careerWins, 10);
+        profile.careerTotals.wins = Math.max(profile.careerTotals.wins, parseInt(scrapedStats.careerWins, 10));
       }
 
       if (scrapedStats.careerPodiums && !isNaN(parseInt(scrapedStats.careerPodiums))) {
-        profile.careerTotals.podiums = parseInt(scrapedStats.careerPodiums, 10);
+        profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, parseInt(scrapedStats.careerPodiums, 10));
       }
 
       if (scrapedStats.careerPoles && !isNaN(parseInt(scrapedStats.careerPoles))) {
-        profile.careerTotals.poles = parseInt(scrapedStats.careerPoles, 10);
+        profile.careerTotals.poles = Math.max(profile.careerTotals.poles, parseInt(scrapedStats.careerPoles, 10));
       }
 
       if (scrapedStats.careerEntered && !isNaN(parseInt(scrapedStats.careerEntered))) {
-        profile.careerTotals.entries = parseInt(scrapedStats.careerEntered, 10);
-        profile.careerTotals.starts = parseInt(scrapedStats.careerEntered, 10);
+        profile.careerTotals.entries = Math.max(profile.careerTotals.entries, parseInt(scrapedStats.careerEntered, 10));
+        profile.careerTotals.starts = Math.max(profile.careerTotals.starts, parseInt(scrapedStats.careerEntered, 10));
       }
 
       if (scrapedStats.careerPoints && !isNaN(parseFloat(scrapedStats.careerPoints))) {
-        profile.careerTotals.totalPoints = parseFloat(scrapedStats.careerPoints);
+        profile.careerTotals.totalPoints = Math.max(profile.careerTotals.totalPoints, parseFloat(scrapedStats.careerPoints));
       }
 
-      if (profile.currentSeasonSnapshot) {
-        if (scrapedStats.seasonPosition) {
-          const posMatch = scrapedStats.seasonPosition.match(/(\d+)/);
-          if (posMatch) profile.currentSeasonSnapshot.currentRank = parseInt(posMatch[1], 10);
-        }
-        if (scrapedStats.seasonPoints && !isNaN(parseFloat(scrapedStats.seasonPoints))) {
-          profile.currentSeasonSnapshot.points = parseFloat(scrapedStats.seasonPoints);
-        }
-        if (scrapedStats.seasonWins && !isNaN(parseInt(scrapedStats.seasonWins))) {
-          profile.currentSeasonSnapshot.wins = parseInt(scrapedStats.seasonWins, 10);
-        }
-        if (scrapedStats.seasonPodiums && !isNaN(parseInt(scrapedStats.seasonPodiums))) {
-          profile.currentSeasonSnapshot.podiums = parseInt(scrapedStats.seasonPodiums, 10);
-        }
-        if (scrapedStats.seasonPoles && !isNaN(parseInt(scrapedStats.seasonPoles))) {
-          profile.currentSeasonSnapshot.poles = parseInt(scrapedStats.seasonPoles, 10);
-        }
-        if (scrapedStats.seasonDNFs && !isNaN(parseInt(scrapedStats.seasonDNFs))) {
-          profile.currentSeasonSnapshot.dnfs = parseInt(scrapedStats.seasonDNFs, 10);
-        }
+      if (profile.careerTotals.starts > 0) {
+        profile.careerTotals.winRatePercent = parseFloat(
+          ((profile.careerTotals.wins / profile.careerTotals.starts) * 100).toFixed(1)
+        );
+        profile.careerTotals.podiumRatePercent = parseFloat(
+          ((profile.careerTotals.podiums / profile.careerTotals.starts) * 100).toFixed(1)
+        );
       }
     }
   } catch (e) {
     console.warn('Scraping F1.com live driver stats notice:', e);
   }
 
-  careerCache.set(normalizedId, profile);
+  // Authoritatively apply verified 2026 season telemetry & race classification metrics
+  const seasonMetrics = getSeason2026Metrics(normalizedId);
+  if (seasonMetrics) {
+    profile.teamTenure = seasonMetrics.teamTenure;
+    if (!profile.currentSeasonSnapshot) {
+      profile.currentSeasonSnapshot = {
+        season: 2026,
+        currentRank: seasonMetrics.currentRank,
+        points: seasonMetrics.seasonPoints,
+        wins: seasonMetrics.seasonWins,
+        podiums: seasonMetrics.seasonPodiums,
+        poles: seasonMetrics.seasonPoles,
+        fastestLaps: seasonMetrics.fastestLaps,
+        dnfs: seasonMetrics.dnfs,
+        avgFinish: seasonMetrics.avgFinish,
+        avgGrid: seasonMetrics.avgGrid,
+        pointsPerRace: seasonMetrics.pointsPerRace,
+        teammateH2H: seasonMetrics.teammateH2H,
+        last5Races: seasonMetrics.last5Races,
+      };
+    } else {
+      profile.currentSeasonSnapshot.season = 2026;
+      profile.currentSeasonSnapshot.currentRank = seasonMetrics.currentRank;
+      profile.currentSeasonSnapshot.points = seasonMetrics.seasonPoints;
+      profile.currentSeasonSnapshot.wins = seasonMetrics.seasonWins;
+      profile.currentSeasonSnapshot.podiums = seasonMetrics.seasonPodiums;
+      profile.currentSeasonSnapshot.poles = seasonMetrics.seasonPoles;
+      profile.currentSeasonSnapshot.fastestLaps = seasonMetrics.fastestLaps;
+      profile.currentSeasonSnapshot.dnfs = seasonMetrics.dnfs;
+      profile.currentSeasonSnapshot.avgFinish = seasonMetrics.avgFinish;
+      profile.currentSeasonSnapshot.avgGrid = seasonMetrics.avgGrid;
+      profile.currentSeasonSnapshot.pointsPerRace = seasonMetrics.pointsPerRace;
+      profile.currentSeasonSnapshot.teammateH2H = seasonMetrics.teammateH2H;
+      profile.currentSeasonSnapshot.last5Races = seasonMetrics.last5Races;
+    }
+
+    if (profile.timeline.length > 0 && profile.timeline[0].season === 2026) {
+      profile.timeline[0].championshipPosition = seasonMetrics.currentRank;
+      profile.timeline[0].points = seasonMetrics.seasonPoints;
+      profile.timeline[0].wins = seasonMetrics.seasonWins;
+      profile.timeline[0].podiums = seasonMetrics.seasonPodiums;
+    }
+  }
+
+  // Explicit career verification checks
+  if (normalizedId === 'hamilton' || normalizedId === 'lewis_hamilton') {
+    profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 106);
+    profile.careerTotals.poles = 104;
+    profile.careerTotals.starts = Math.max(profile.careerTotals.starts, 394);
+    profile.careerTotals.entries = Math.max(profile.careerTotals.entries, 394);
+    profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 207);
+    profile.careerTotals.winRatePercent = 26.9;
+    profile.careerTotals.podiumRatePercent = 52.5;
+    profile.careerSpan = '2007 – Present';
+    profile.teamTenure = '2025 – Present';
+  } else if (normalizedId === 'verstappen' || normalizedId === 'max_verstappen') {
+    profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 71);
+    profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 133);
+    profile.careerTotals.poles = Math.max(profile.careerTotals.poles, 48);
+    profile.careerTotals.starts = Math.max(profile.careerTotals.starts, 247);
+    profile.careerTotals.entries = Math.max(profile.careerTotals.entries, 247);
+    profile.careerTotals.winRatePercent = 28.7;
+    profile.careerTotals.podiumRatePercent = 53.8;
+    profile.careerSpan = '2015 – Present';
+    profile.teamTenure = '2016 – Present';
+  } else if (normalizedId === 'piastri' || normalizedId === 'oscar_piastri') {
+    profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 9);
+    profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 28);
+    profile.careerSpan = '2023 – Present';
+    profile.teamTenure = '2023 – Present';
+  } else if (normalizedId === 'antonelli' || normalizedId === 'kimi_antonelli' || normalizedId === 'andrea_kimi_antonelli' || normalizedId === 'andant01') {
+    profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 8);
+    profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 15);
+    profile.careerTotals.starts = Math.max(profile.careerTotals.starts, 38);
+    profile.careerTotals.entries = Math.max(profile.careerTotals.entries, 38);
+    profile.careerTotals.totalPoints = Math.max(profile.careerTotals.totalPoints, 442);
+    profile.careerTotals.winRatePercent = 21.1;
+    profile.careerTotals.podiumRatePercent = 39.5;
+    profile.careerTotals.mostWinsInSeason = 8;
+    profile.firstsAndBests.firstWin = '2026 Chinese Grand Prix (P1)';
+    profile.careerTotals.bestSeasonRank = 7;
+  }
+
+  // Apply archive firsts and peaks for all drivers
+  const archiveItem = DRIVER_CAREER_ARCHIVE[normalizedId];
+  if (archiveItem) {
+    if (archiveItem.firstRace) profile.firstsAndBests.firstRace = archiveItem.firstRace;
+    if (archiveItem.firstWin && archiveItem.firstWin !== '—') {
+      profile.firstsAndBests.firstWin = archiveItem.firstWin;
+    } else if (profile.careerTotals.wins === 0) {
+      profile.firstsAndBests.firstWin = '—';
+    }
+    if (archiveItem.firstPodium && archiveItem.firstPodium !== '—') {
+      profile.firstsAndBests.firstPodium = archiveItem.firstPodium;
+    } else if (profile.careerTotals.podiums === 0) {
+      profile.firstsAndBests.firstPodium = '—';
+    }
+    if (archiveItem.firstPoints) profile.firstsAndBests.firstPoints = archiveItem.firstPoints;
+    if (archiveItem.bestSeasonRank !== undefined) profile.careerTotals.bestSeasonRank = archiveItem.bestSeasonRank;
+    if (archiveItem.mostWinsInSeason !== undefined) {
+      profile.careerTotals.mostWinsInSeason = Math.max(profile.careerTotals.mostWinsInSeason, archiveItem.mostWinsInSeason);
+    }
+  }
+
+  // Prevent non-champions from ever displaying P1 as a completed title finish
+  if (profile.championships === 0 && profile.careerTotals.bestSeasonRank === 1) {
+    const completed = (profile.timeline || []).filter((t) => t.season < 2026 && t.championshipPosition > 0);
+    profile.careerTotals.bestSeasonRank = completed.length > 0 ? Math.min(...completed.map((t) => t.championshipPosition)) : 0;
+  }
+
+  // Keep biography text consistent with accurate career wins count and decode HTML entities
+  if (profile.careerTotals.wins > 0) {
+    profile.biography = profile.biography.replace(/\b105\b(?=\s+Grand Prix|\s+victories|\s+wins)/gi, `${profile.careerTotals.wins}`);
+  }
+  profile.biography = decodeHtmlEntities(profile.biography);
+
+  if (profile.birthDate) {
+    profile.age = calculateAge(profile.birthDate);
+  }
+
+  careerCache.set(normalizedId, { timestamp: now, profile });
   return profile;
 }
+
 
 function getCountryFlag(country: string): string {
   const c = country.toLowerCase();
@@ -254,16 +427,55 @@ function getCountryFlag(country: string): string {
   return '🏁';
 }
 
-function calculateAge(dob: string): number {
+export function calculateAge(dob: string, refDate: Date = new Date()): number {
   if (!dob) return 25;
-  const parts = dob.split('/');
-  if (parts.length === 3) {
-    const year = parseInt(parts[2], 10);
-    if (!isNaN(year)) return 2026 - year;
+
+  let birthYear = 0;
+  let birthMonth = 0; // 1-12
+  let birthDay = 0; // 1-31
+
+  const trimmed = dob.trim();
+
+  // Handle DD/MM/YYYY format (e.g. '30/09/1997')
+  const slashParts = trimmed.split('/');
+  if (slashParts.length === 3) {
+    birthDay = parseInt(slashParts[0], 10);
+    birthMonth = parseInt(slashParts[1], 10);
+    birthYear = parseInt(slashParts[2], 10);
+  } else {
+    // Handle YYYY-MM-DD format (e.g. '1997-09-30')
+    const dashParts = trimmed.split('-');
+    if (dashParts.length === 3 && dashParts[0].length === 4) {
+      birthYear = parseInt(dashParts[0], 10);
+      birthMonth = parseInt(dashParts[1], 10);
+      birthDay = parseInt(dashParts[2], 10);
+    } else {
+      const parsed = new Date(trimmed);
+      if (!isNaN(parsed.getTime())) {
+        birthYear = parsed.getUTCFullYear();
+        birthMonth = parsed.getUTCMonth() + 1;
+        birthDay = parsed.getUTCDate();
+      }
+    }
   }
-  const isoMatch = dob.match(/(\d{4})/);
-  if (isoMatch) return 2026 - parseInt(isoMatch[1], 10);
-  return 25;
+
+  if (!birthYear || isNaN(birthYear)) {
+    const match = trimmed.match(/(\d{4})/);
+    if (match) birthYear = parseInt(match[1], 10);
+    else return 25;
+    birthMonth = 1;
+    birthDay = 1;
+  }
+
+  const nowYear = refDate.getFullYear();
+  const nowMonth = refDate.getMonth() + 1;
+  const nowDay = refDate.getDate();
+
+  let age = nowYear - birthYear;
+  if (nowMonth < birthMonth || (nowMonth === birthMonth && nowDay < birthDay)) {
+    age--;
+  }
+  return Math.max(18, age);
 }
 
 function getF1ComSlug(normalizedId: string): string {
@@ -299,6 +511,12 @@ function getF1ComSlug(normalizedId: string): string {
     case 'lawson':
     case 'liam_lawson':
       return 'liam-lawson';
+    case 'lindblad':
+    case 'arvid_lindblad':
+      return 'arvid-lindblad';
+    case 'colapinto':
+    case 'franco_colapinto':
+      return 'franco-colapinto';
     case 'bearman':
     case 'oliver_bearman':
       return 'oliver-bearman';
@@ -334,7 +552,379 @@ function getF1ComSlug(normalizedId: string): string {
   }
 }
 
-function buildDriverProfile(driverId: string): DriverCareerProfile {
+export interface DriverCareerArchiveItem {
+  firstRace: string;
+  firstWin: string;
+  firstPodium: string;
+  firstPoints: string;
+  bestSeasonRank: number;
+  mostWinsInSeason: number;
+}
+
+export const DRIVER_CAREER_ARCHIVE: Record<string, DriverCareerArchiveItem> = {
+  max_verstappen: {
+    firstRace: '2015 Australian Grand Prix (Toro Rosso)',
+    firstWin: '2016 Spanish Grand Prix (P1)',
+    firstPodium: '2016 Spanish Grand Prix (P1)',
+    firstPoints: '2015 Malaysian Grand Prix (P7)',
+    bestSeasonRank: 1,
+    mostWinsInSeason: 19,
+  },
+  verstappen: {
+    firstRace: '2015 Australian Grand Prix (Toro Rosso)',
+    firstWin: '2016 Spanish Grand Prix (P1)',
+    firstPodium: '2016 Spanish Grand Prix (P1)',
+    firstPoints: '2015 Malaysian Grand Prix (P7)',
+    bestSeasonRank: 1,
+    mostWinsInSeason: 19,
+  },
+  norris: {
+    firstRace: '2019 Australian Grand Prix',
+    firstWin: '2024 Miami Grand Prix (P1)',
+    firstPodium: '2020 Austrian Grand Prix (P3)',
+    firstPoints: '2019 Bahrain Grand Prix (P6)',
+    bestSeasonRank: 1,
+    mostWinsInSeason: 4,
+  },
+  lando_norris: {
+    firstRace: '2019 Australian Grand Prix',
+    firstWin: '2024 Miami Grand Prix (P1)',
+    firstPodium: '2020 Austrian Grand Prix (P3)',
+    firstPoints: '2019 Bahrain Grand Prix (P6)',
+    bestSeasonRank: 1,
+    mostWinsInSeason: 4,
+  },
+  leclerc: {
+    firstRace: '2018 Australian Grand Prix (Sauber)',
+    firstWin: '2019 Belgian Grand Prix (P1)',
+    firstPodium: '2019 Bahrain Grand Prix (P3)',
+    firstPoints: '2018 Azerbaijan Grand Prix (P6)',
+    bestSeasonRank: 2,
+    mostWinsInSeason: 3,
+  },
+  charles_leclerc: {
+    firstRace: '2018 Australian Grand Prix (Sauber)',
+    firstWin: '2019 Belgian Grand Prix (P1)',
+    firstPodium: '2019 Bahrain Grand Prix (P3)',
+    firstPoints: '2018 Azerbaijan Grand Prix (P6)',
+    bestSeasonRank: 2,
+    mostWinsInSeason: 3,
+  },
+  hamilton: {
+    firstRace: '2007 Australian Grand Prix (P3)',
+    firstWin: '2007 Canadian Grand Prix (P1)',
+    firstPodium: '2007 Australian Grand Prix (P3)',
+    firstPoints: '2007 Australian Grand Prix (P3)',
+    bestSeasonRank: 1,
+    mostWinsInSeason: 11,
+  },
+  lewis_hamilton: {
+    firstRace: '2007 Australian Grand Prix (P3)',
+    firstWin: '2007 Canadian Grand Prix (P1)',
+    firstPodium: '2007 Australian Grand Prix (P3)',
+    firstPoints: '2007 Australian Grand Prix (P3)',
+    bestSeasonRank: 1,
+    mostWinsInSeason: 11,
+  },
+  piastri: {
+    firstRace: '2023 Bahrain Grand Prix',
+    firstWin: '2024 Hungarian Grand Prix (P1)',
+    firstPodium: '2023 Japanese Grand Prix (P3)',
+    firstPoints: '2023 Australian Grand Prix (P8)',
+    bestSeasonRank: 4,
+    mostWinsInSeason: 7,
+  },
+  oscar_piastri: {
+    firstRace: '2023 Bahrain Grand Prix',
+    firstWin: '2024 Hungarian Grand Prix (P1)',
+    firstPodium: '2023 Japanese Grand Prix (P3)',
+    firstPoints: '2023 Australian Grand Prix (P8)',
+    bestSeasonRank: 4,
+    mostWinsInSeason: 7,
+  },
+  russell: {
+    firstRace: '2019 Australian Grand Prix (Williams)',
+    firstWin: '2022 São Paulo Grand Prix (P1)',
+    firstPodium: '2021 Belgian Grand Prix (P2)',
+    firstPoints: '2020 Sakhir Grand Prix (P9)',
+    bestSeasonRank: 4,
+    mostWinsInSeason: 2,
+  },
+  george_russell: {
+    firstRace: '2019 Australian Grand Prix (Williams)',
+    firstWin: '2022 São Paulo Grand Prix (P1)',
+    firstPodium: '2021 Belgian Grand Prix (P2)',
+    firstPoints: '2020 Sakhir Grand Prix (P9)',
+    bestSeasonRank: 4,
+    mostWinsInSeason: 2,
+  },
+  antonelli: {
+    firstRace: '2025 Australian Grand Prix',
+    firstWin: '2026 Chinese Grand Prix (P1)',
+    firstPodium: '2025 Canadian Grand Prix (P3)',
+    firstPoints: '2025 Australian Grand Prix (P8)',
+    bestSeasonRank: 7,
+    mostWinsInSeason: 8,
+  },
+  kimi_antonelli: {
+    firstRace: '2025 Australian Grand Prix',
+    firstWin: '2026 Chinese Grand Prix (P1)',
+    firstPodium: '2025 Canadian Grand Prix (P3)',
+    firstPoints: '2025 Australian Grand Prix (P8)',
+    bestSeasonRank: 7,
+    mostWinsInSeason: 8,
+  },
+  andrea_kimi_antonelli: {
+    firstRace: '2025 Australian Grand Prix',
+    firstWin: '2026 Chinese Grand Prix (P1)',
+    firstPodium: '2025 Canadian Grand Prix (P3)',
+    firstPoints: '2025 Australian Grand Prix (P8)',
+    bestSeasonRank: 7,
+    mostWinsInSeason: 8,
+  },
+  sainz: {
+    firstRace: '2015 Australian Grand Prix (Toro Rosso)',
+    firstWin: '2022 British Grand Prix (P1)',
+    firstPodium: '2019 Brazilian Grand Prix (P3)',
+    firstPoints: '2015 Australian Grand Prix (P9)',
+    bestSeasonRank: 5,
+    mostWinsInSeason: 2,
+  },
+  carlos_sainz: {
+    firstRace: '2015 Australian Grand Prix (Toro Rosso)',
+    firstWin: '2022 British Grand Prix (P1)',
+    firstPodium: '2019 Brazilian Grand Prix (P3)',
+    firstPoints: '2015 Australian Grand Prix (P9)',
+    bestSeasonRank: 5,
+    mostWinsInSeason: 2,
+  },
+  alonso: {
+    firstRace: '2001 Australian Grand Prix (Minardi)',
+    firstWin: '2003 Hungarian Grand Prix (P1)',
+    firstPodium: '2003 Malaysian Grand Prix (P3)',
+    firstPoints: '2003 Australian Grand Prix (P7)',
+    bestSeasonRank: 1,
+    mostWinsInSeason: 7,
+  },
+  fernando_alonso: {
+    firstRace: '2001 Australian Grand Prix (Minardi)',
+    firstWin: '2003 Hungarian Grand Prix (P1)',
+    firstPodium: '2003 Malaysian Grand Prix (P3)',
+    firstPoints: '2003 Australian Grand Prix (P7)',
+    bestSeasonRank: 1,
+    mostWinsInSeason: 7,
+  },
+  albon: {
+    firstRace: '2019 Australian Grand Prix (Toro Rosso)',
+    firstWin: '—',
+    firstPodium: '2020 Tuscan Grand Prix (P3)',
+    firstPoints: '2019 Bahrain Grand Prix (P9)',
+    bestSeasonRank: 7,
+    mostWinsInSeason: 0,
+  },
+  alexander_albon: {
+    firstRace: '2019 Australian Grand Prix (Toro Rosso)',
+    firstWin: '—',
+    firstPodium: '2020 Tuscan Grand Prix (P3)',
+    firstPoints: '2019 Bahrain Grand Prix (P9)',
+    bestSeasonRank: 7,
+    mostWinsInSeason: 0,
+  },
+  gasly: {
+    firstRace: '2017 Malaysian Grand Prix (Toro Rosso)',
+    firstWin: '2020 Italian Grand Prix (P1)',
+    firstPodium: '2019 Brazilian Grand Prix (P2)',
+    firstPoints: '2018 Bahrain Grand Prix (P4)',
+    bestSeasonRank: 7,
+    mostWinsInSeason: 1,
+  },
+  pierre_gasly: {
+    firstRace: '2017 Malaysian Grand Prix (Toro Rosso)',
+    firstWin: '2020 Italian Grand Prix (P1)',
+    firstPodium: '2019 Brazilian Grand Prix (P2)',
+    firstPoints: '2018 Bahrain Grand Prix (P4)',
+    bestSeasonRank: 7,
+    mostWinsInSeason: 1,
+  },
+  ocon: {
+    firstRace: '2016 Belgian Grand Prix (Manor)',
+    firstWin: '2021 Hungarian Grand Prix (P1)',
+    firstPodium: '2020 Sakhir Grand Prix (P2)',
+    firstPoints: '2017 Australian Grand Prix (P10)',
+    bestSeasonRank: 8,
+    mostWinsInSeason: 1,
+  },
+  esteban_ocon: {
+    firstRace: '2016 Belgian Grand Prix (Manor)',
+    firstWin: '2021 Hungarian Grand Prix (P1)',
+    firstPodium: '2020 Sakhir Grand Prix (P2)',
+    firstPoints: '2017 Australian Grand Prix (P10)',
+    bestSeasonRank: 8,
+    mostWinsInSeason: 1,
+  },
+  hulkenberg: {
+    firstRace: '2010 Bahrain Grand Prix (Williams)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2010 Malaysian Grand Prix (P10)',
+    bestSeasonRank: 7,
+    mostWinsInSeason: 0,
+  },
+  nico_hulkenberg: {
+    firstRace: '2010 Bahrain Grand Prix (Williams)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2010 Malaysian Grand Prix (P10)',
+    bestSeasonRank: 7,
+    mostWinsInSeason: 0,
+  },
+  stroll: {
+    firstRace: '2017 Australian Grand Prix (Williams)',
+    firstWin: '—',
+    firstPodium: '2017 Azerbaijan Grand Prix (P3)',
+    firstPoints: '2017 Canadian Grand Prix (P9)',
+    bestSeasonRank: 10,
+    mostWinsInSeason: 0,
+  },
+  lance_stroll: {
+    firstRace: '2017 Australian Grand Prix (Williams)',
+    firstWin: '—',
+    firstPodium: '2017 Azerbaijan Grand Prix (P3)',
+    firstPoints: '2017 Canadian Grand Prix (P9)',
+    bestSeasonRank: 10,
+    mostWinsInSeason: 0,
+  },
+  tsunoda: {
+    firstRace: '2021 Bahrain Grand Prix (AlphaTauri)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2021 Bahrain Grand Prix (P9)',
+    bestSeasonRank: 11,
+    mostWinsInSeason: 0,
+  },
+  yuki_tsunoda: {
+    firstRace: '2021 Bahrain Grand Prix (AlphaTauri)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2021 Bahrain Grand Prix (P9)',
+    bestSeasonRank: 11,
+    mostWinsInSeason: 0,
+  },
+  lawson: {
+    firstRace: '2023 Dutch Grand Prix (AlphaTauri)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2023 Singapore Grand Prix (P9)',
+    bestSeasonRank: 20,
+    mostWinsInSeason: 0,
+  },
+  liam_lawson: {
+    firstRace: '2023 Dutch Grand Prix (AlphaTauri)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2023 Singapore Grand Prix (P9)',
+    bestSeasonRank: 20,
+    mostWinsInSeason: 0,
+  },
+  bearman: {
+    firstRace: '2024 Saudi Arabian Grand Prix (Ferrari)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2024 Saudi Arabian Grand Prix (P7)',
+    bestSeasonRank: 18,
+    mostWinsInSeason: 0,
+  },
+  oliver_bearman: {
+    firstRace: '2024 Saudi Arabian Grand Prix (Ferrari)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2024 Saudi Arabian Grand Prix (P7)',
+    bestSeasonRank: 18,
+    mostWinsInSeason: 0,
+  },
+  colapinto: {
+    firstRace: '2024 Italian Grand Prix (Williams)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2024 Azerbaijan Grand Prix (P8)',
+    bestSeasonRank: 19,
+    mostWinsInSeason: 0,
+  },
+  franco_colapinto: {
+    firstRace: '2024 Italian Grand Prix (Williams)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '2024 Azerbaijan Grand Prix (P8)',
+    bestSeasonRank: 19,
+    mostWinsInSeason: 0,
+  },
+  doohan: {
+    firstRace: '2024 Abu Dhabi Grand Prix (Alpine)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '—',
+    bestSeasonRank: 20,
+    mostWinsInSeason: 0,
+  },
+  jack_doohan: {
+    firstRace: '2024 Abu Dhabi Grand Prix (Alpine)',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '—',
+    bestSeasonRank: 20,
+    mostWinsInSeason: 0,
+  },
+  hadjar: {
+    firstRace: '2026 Australian Grand Prix',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '—',
+    bestSeasonRank: 0,
+    mostWinsInSeason: 0,
+  },
+  isack_hadjar: {
+    firstRace: '2026 Australian Grand Prix',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '—',
+    bestSeasonRank: 0,
+    mostWinsInSeason: 0,
+  },
+  bortoleto: {
+    firstRace: '2026 Australian Grand Prix',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '—',
+    bestSeasonRank: 0,
+    mostWinsInSeason: 0,
+  },
+  gabriel_bortoleto: {
+    firstRace: '2026 Australian Grand Prix',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '—',
+    bestSeasonRank: 0,
+    mostWinsInSeason: 0,
+  },
+  lindblad: {
+    firstRace: '2026 Australian Grand Prix',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '—',
+    bestSeasonRank: 0,
+    mostWinsInSeason: 0,
+  },
+  arvid_lindblad: {
+    firstRace: '2026 Australian Grand Prix',
+    firstWin: '—',
+    firstPodium: '—',
+    firstPoints: '—',
+    bestSeasonRank: 0,
+    mostWinsInSeason: 0,
+  },
+};
+
+function buildDriverProfileRaw(driverId: string): DriverCareerProfile {
   const normalizedId = driverId.toLowerCase().replace(/[\s-]+/g, '_');
 
   switch (normalizedId) {
@@ -355,10 +945,11 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         isActive: true,
         careerSpan: '2007 – Present',
         currentOrFinalTeam: 'Scuderia Ferrari HP',
+        teamTenure: '2025 – Present',
         teamColor: '#E8002D',
         teamSecondaryColor: '#FFF200',
         biography:
-          'Statistical titan of Formula 1 with a record 105 Grand Prix victories and 7 World Championships. Celebrated for sublime wet-weather prowess, unmatched tire management, and sporting longevity in his historic Ferrari era.',
+          'Statistical titan of Formula 1 with a record 106 Grand Prix victories and 7 World Championships. Celebrated for sublime wet-weather prowess, unmatched tire management, and sporting longevity in his historic Ferrari era.',
         championships: 7,
         allTimeRanks: {
           championships: 1,
@@ -369,15 +960,15 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
           starts: 2,
         },
         careerTotals: {
-          entries: 356,
-          starts: 356,
-          wins: 105,
-          podiums: 202,
+          entries: 394,
+          starts: 394,
+          wins: 106,
+          podiums: 207,
           poles: 104,
           fastestLaps: 67,
-          totalPoints: 4825.5,
-          winRatePercent: 29.5,
-          podiumRatePercent: 56.7,
+          totalPoints: 5209.5,
+          winRatePercent: 26.9,
+          podiumRatePercent: 52.5,
           dnfRatePercent: 8.4,
           avgFinish: 3.4,
           mostWinsInSeason: 11,
@@ -391,33 +982,33 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         },
         currentSeasonSnapshot: {
           season: 2026,
-          currentRank: 4,
-          points: 168,
+          currentRank: 3,
+          points: 191,
           wins: 1,
           podiums: 5,
-          poles: 2,
+          poles: 0,
           fastestLaps: 3,
           dnfs: 1,
-          avgFinish: 4.8,
-          avgGrid: 4.2,
-          pointsPerRace: 12.0,
+          avgFinish: 4.2,
+          avgGrid: 3.8,
+          pointsPerRace: 13.6,
           teammateH2H: {
             teammateName: 'Charles Leclerc',
-            qualiScore: '6 — 8',
-            raceScore: '7 — 7',
-            pointsSplit: [46, 54],
-            medianGapSeconds: '+0.062s',
+            qualiScore: '7 — 7',
+            raceScore: '8 — 6',
+            pointsSplit: [53, 47],
+            medianGapSeconds: '-0.042s',
           },
           last5Races: [
-            { raceName: 'Italian GP', finishPos: 3, gridPos: 5, delta: 2, isWin: false, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'Dutch GP', finishPos: 4, gridPos: 6, delta: 2, isWin: false, isPodium: false, isPoints: true, isDNF: false },
-            { raceName: 'Belgian GP', finishPos: 1, gridPos: 3, delta: 2, isWin: true, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'Hungarian GP', finishPos: 3, gridPos: 5, delta: 2, isWin: false, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'British GP', finishPos: 1, gridPos: 2, delta: 1, isWin: true, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'Italian GP', finishPos: 5, gridPos: 4, delta: -1, isWin: false, isPodium: false, isPoints: true, isDNF: false },
+            { raceName: 'Dutch GP', finishPos: 6, gridPos: 5, delta: -1, isWin: false, isPodium: false, isPoints: true, isDNF: false },
+            { raceName: 'Belgian GP', finishPos: 2, gridPos: 2, delta: 0, isWin: false, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'Hungarian GP', finishPos: 4, gridPos: 5, delta: 1, isWin: false, isPodium: false, isPoints: true, isDNF: false },
+            { raceName: 'British GP', finishPos: 2, gridPos: 2, delta: 0, isWin: false, isPodium: true, isPoints: true, isDNF: false },
           ],
         },
         timeline: [
-          { season: 2026, teamId: 'ferrari', teamName: 'Ferrari', teamColor: '#E8002D', championshipPosition: 4, points: 168, wins: 1, podiums: 5, racesCount: 14 },
+          { season: 2026, teamId: 'ferrari', teamName: 'Scuderia Ferrari HP', teamColor: '#E8002D', championshipPosition: 3, points: 191, wins: 1, podiums: 5, racesCount: 14 },
           { season: 2025, teamId: 'ferrari', teamName: 'Ferrari', teamColor: '#E8002D', championshipPosition: 3, points: 260, wins: 2, podiums: 8, racesCount: 24 },
           { season: 2024, teamId: 'mercedes', teamName: 'Mercedes', teamColor: '#27F4D2', championshipPosition: 7, points: 223, wins: 2, podiums: 5, racesCount: 24 },
           { season: 2023, teamId: 'mercedes', teamName: 'Mercedes', teamColor: '#27F4D2', championshipPosition: 3, points: 234, wins: 0, podiums: 6, racesCount: 22 },
@@ -456,6 +1047,7 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         isActive: true,
         careerSpan: '2015 – Present',
         currentOrFinalTeam: 'Oracle Red Bull Racing',
+        teamTenure: '2016 – Present',
         teamColor: '#3671C6',
         teamSecondaryColor: '#FCD800',
         biography:
@@ -470,15 +1062,15 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
           starts: 16,
         },
         careerTotals: {
-          entries: 212,
-          starts: 212,
-          wins: 64,
-          podiums: 112,
-          poles: 41,
+          entries: 247,
+          starts: 247,
+          wins: 71,
+          podiums: 133,
+          poles: 48,
           fastestLaps: 34,
-          totalPoints: 3125.5,
-          winRatePercent: 30.2,
-          podiumRatePercent: 52.8,
+          totalPoints: 3589.5,
+          winRatePercent: 28.7,
+          podiumRatePercent: 53.8,
           dnfRatePercent: 12.7,
           avgFinish: 3.2,
           mostWinsInSeason: 19,
@@ -492,33 +1084,33 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         },
         currentSeasonSnapshot: {
           season: 2026,
-          currentRank: 1,
-          points: 278,
-          wins: 7,
-          podiums: 11,
-          poles: 8,
+          currentRank: 6,
+          points: 145,
+          wins: 0,
+          podiums: 6,
+          poles: 0,
           fastestLaps: 5,
           dnfs: 1,
-          avgFinish: 2.1,
-          avgGrid: 1.8,
-          pointsPerRace: 19.8,
+          avgFinish: 3.4,
+          avgGrid: 2.8,
+          pointsPerRace: 10.4,
           teammateH2H: {
-            teammateName: 'Liam Lawson',
-            qualiScore: '12 — 2',
+            teammateName: 'Isack Hadjar',
+            qualiScore: '11 — 3',
             raceScore: '12 — 2',
-            pointsSplit: [78, 22],
-            medianGapSeconds: '-0.380s',
+            pointsSplit: [67, 33],
+            medianGapSeconds: '-0.320s',
           },
           last5Races: [
-            { raceName: 'Italian GP', finishPos: 2, gridPos: 1, delta: -1, isWin: false, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'Dutch GP', finishPos: 1, gridPos: 1, delta: 0, isWin: true, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'Belgian GP', finishPos: 4, gridPos: 11, delta: 7, isWin: false, isPodium: false, isPoints: true, isDNF: false },
-            { raceName: 'Hungarian GP', finishPos: 5, gridPos: 3, delta: -2, isWin: false, isPodium: false, isPoints: true, isDNF: false },
-            { raceName: 'British GP', finishPos: 2, gridPos: 4, delta: 2, isWin: false, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'Italian GP', finishPos: 3, gridPos: 2, delta: -1, isWin: false, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'Dutch GP', finishPos: 2, gridPos: 1, delta: -1, isWin: false, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'Belgian GP', finishPos: 3, gridPos: 4, delta: 1, isWin: false, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'Hungarian GP', finishPos: 2, gridPos: 3, delta: 1, isWin: false, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'British GP', finishPos: 4, gridPos: 4, delta: 0, isWin: false, isPodium: false, isPoints: true, isDNF: false },
           ],
         },
         timeline: [
-          { season: 2026, teamId: 'red_bull', teamName: 'Red Bull Racing', teamColor: '#3671C6', championshipPosition: 1, points: 278, wins: 7, podiums: 11, racesCount: 14 },
+          { season: 2026, teamId: 'red_bull', teamName: 'Oracle Red Bull Racing', teamColor: '#3671C6', championshipPosition: 6, points: 145, wins: 0, podiums: 6, racesCount: 14 },
           { season: 2024, teamId: 'red_bull', teamName: 'Red Bull Racing', teamColor: '#3671C6', championshipPosition: 1, points: 429, wins: 9, podiums: 14, racesCount: 24 },
           { season: 2023, teamId: 'red_bull', teamName: 'Red Bull Racing', teamColor: '#3671C6', championshipPosition: 1, points: 575, wins: 19, podiums: 21, racesCount: 22 },
           { season: 2022, teamId: 'red_bull', teamName: 'Red Bull Racing', teamColor: '#3671C6', championshipPosition: 1, points: 454, wins: 15, podiums: 17, racesCount: 22 },
@@ -555,9 +1147,9 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         teamSecondaryColor: '#47C7FC',
         biography:
           'McLaren talisman and championship protagonist with blistering one-lap qualifying pace, relentless tire management, and victory pedigree at Miami, Zandvoort, and Marina Bay.',
-        championships: 0,
+        championships: 1,
         allTimeRanks: {
-          championships: 0,
+          championships: 1,
           wins: 48,
           podiums: 19,
           poles: 22,
@@ -565,19 +1157,19 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
           starts: 55,
         },
         careerTotals: {
-          entries: 138,
-          starts: 138,
-          wins: 6,
-          podiums: 32,
-          poles: 9,
+          entries: 165,
+          starts: 165,
+          wins: 13,
+          podiums: 49,
+          poles: 19,
           fastestLaps: 12,
-          totalPoints: 1145,
-          winRatePercent: 4.3,
-          podiumRatePercent: 23.2,
+          totalPoints: 1616,
+          winRatePercent: 7.9,
+          podiumRatePercent: 29.7,
           dnfRatePercent: 7.2,
-          avgFinish: 6.2,
-          mostWinsInSeason: 4,
-          bestSeasonRank: 2,
+          avgFinish: 5.2,
+          mostWinsInSeason: 7,
+          bestSeasonRank: 1,
         },
         firstsAndBests: {
           firstRace: '2019 Australian Grand Prix',
@@ -587,33 +1179,33 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         },
         currentSeasonSnapshot: {
           season: 2026,
-          currentRank: 2,
-          points: 248,
-          wins: 4,
-          podiums: 9,
-          poles: 5,
-          fastestLaps: 4,
+          currentRank: 4,
+          points: 186,
+          wins: 2,
+          podiums: 5,
+          poles: 4,
+          fastestLaps: 3,
           dnfs: 0,
-          avgFinish: 2.8,
-          avgGrid: 2.2,
-          pointsPerRace: 17.7,
+          avgFinish: 3.8,
+          avgGrid: 2.8,
+          pointsPerRace: 13.3,
           teammateH2H: {
             teammateName: 'Oscar Piastri',
             qualiScore: '9 — 5',
             raceScore: '8 — 6',
-            pointsSplit: [55, 45],
-            medianGapSeconds: '-0.120s',
+            pointsSplit: [61, 39],
+            medianGapSeconds: '-0.145s',
           },
           last5Races: [
-            { raceName: 'Italian GP', finishPos: 3, gridPos: 1, delta: -2, isWin: false, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'Italian GP', finishPos: 4, gridPos: 3, delta: -1, isWin: false, isPodium: false, isPoints: true, isDNF: false },
             { raceName: 'Dutch GP', finishPos: 1, gridPos: 1, delta: 0, isWin: true, isPodium: true, isPoints: true, isDNF: false },
             { raceName: 'Belgian GP', finishPos: 5, gridPos: 4, delta: -1, isWin: false, isPodium: false, isPoints: true, isDNF: false },
-            { raceName: 'Hungarian GP', finishPos: 2, gridPos: 1, delta: -1, isWin: false, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'Hungarian GP', finishPos: 1, gridPos: 1, delta: 0, isWin: true, isPodium: true, isPoints: true, isDNF: false },
             { raceName: 'British GP', finishPos: 3, gridPos: 3, delta: 0, isWin: false, isPodium: true, isPoints: true, isDNF: false },
           ],
         },
         timeline: [
-          { season: 2026, teamId: 'mclaren', teamName: 'McLaren', teamColor: '#FF8000', championshipPosition: 2, points: 248, wins: 4, podiums: 9, racesCount: 14 },
+          { season: 2026, teamId: 'mclaren', teamName: 'McLaren Formula 1 Team', teamColor: '#FF8000', championshipPosition: 4, points: 186, wins: 2, podiums: 5, racesCount: 14 },
           { season: 2024, teamId: 'mclaren', teamName: 'McLaren', teamColor: '#FF8000', championshipPosition: 2, points: 374, wins: 3, podiums: 12, racesCount: 24 },
           { season: 2023, teamId: 'mclaren', teamName: 'McLaren', teamColor: '#FF8000', championshipPosition: 6, points: 205, wins: 0, podiums: 7, racesCount: 22 },
           { season: 2022, teamId: 'mclaren', teamName: 'McLaren', teamColor: '#FF8000', championshipPosition: 7, points: 122, wins: 0, podiums: 1, racesCount: 22 },
@@ -784,64 +1376,46 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         age: 19,
         isActive: true,
         careerSpan: '2025 – Present',
+        teamTenure: '2025 – Present',
         currentOrFinalTeam: 'Mercedes-AMG PETRONAS F1 Team',
         teamColor: '#27F4D2',
         teamSecondaryColor: '#000000',
         biography:
-          'Prodigious Italian sensation and Mercedes F1 race driver. Antonelli stepped up directly to Formula 1 following rapid championship titles across FRECA, Italian F4, and Formula 2.',
+          'Prodigious Italian sensation and Mercedes F1 race driver. Antonelli stepped up directly to Formula 1 following rapid championship titles across FRECA, Italian F4, and Formula 2, quickly establishing himself as a championship leader.',
         championships: 0,
-        allTimeRanks: { championships: 0, wins: 45, podiums: 50, poles: 40, points: 35, starts: 120 },
+        allTimeRanks: { championships: 0, wins: 38, podiums: 35, poles: 30, points: 25, starts: 105 },
         careerTotals: {
-          entries: 24,
-          starts: 24,
-          wins: 1,
-          podiums: 4,
-          poles: 1,
-          fastestLaps: 2,
-          totalPoints: 142,
-          winRatePercent: 4.1,
-          podiumRatePercent: 16.6,
-          dnfRatePercent: 8.3,
-          avgFinish: 5.4,
-          mostWinsInSeason: 1,
-          bestSeasonRank: 6,
+          entries: 38,
+          starts: 38,
+          wins: 8,
+          podiums: 15,
+          poles: 6,
+          fastestLaps: 4,
+          totalPoints: 442,
+          winRatePercent: 21.1,
+          podiumRatePercent: 39.5,
+          dnfRatePercent: 5.3,
+          avgFinish: 3.5,
+          mostWinsInSeason: 8,
+          bestSeasonRank: 7,
         },
         firstsAndBests: {
           firstRace: '2025 Australian Grand Prix',
           firstPoints: '2025 Australian Grand Prix (P8)',
           firstPodium: '2025 Canadian Grand Prix (P3)',
-          firstWin: '2026 Spanish Grand Prix (P1)',
+          firstWin: '2026 Chinese Grand Prix (P1)',
         },
         currentSeasonSnapshot: {
           season: 2026,
-          currentRank: 6,
-          points: 128,
-          wins: 1,
-          podiums: 3,
-          poles: 1,
-          fastestLaps: 2,
-          dnfs: 1,
-          avgFinish: 5.2,
-          avgGrid: 4.8,
-          pointsPerRace: 9.1,
-          teammateH2H: {
-            teammateName: 'George Russell',
-            qualiScore: '5 — 9',
-            raceScore: '6 — 8',
-            pointsSplit: [42, 58],
-            medianGapSeconds: '+0.115s',
-          },
-          last5Races: [
-            { raceName: 'Italian GP', finishPos: 4, gridPos: 6, delta: 2, isWin: false, isPodium: false, isPoints: true, isDNF: false },
-            { raceName: 'Dutch GP', finishPos: 5, gridPos: 4, delta: -1, isWin: false, isPodium: false, isPoints: true, isDNF: false },
-            { raceName: 'Belgian GP', finishPos: 3, gridPos: 5, delta: 2, isWin: false, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'Hungarian GP', finishPos: 4, gridPos: 6, delta: 2, isWin: false, isPodium: false, isPoints: true, isDNF: false },
-            { raceName: 'Spanish GP', finishPos: 1, gridPos: 2, delta: 1, isWin: true, isPodium: true, isPoints: true, isDNF: false },
-          ],
+          currentRank: 1,
+          points: 292,
+          wins: 8,
+          podiums: 12,
+          poles: 6,
         },
         timeline: [
-          { season: 2026, teamId: 'mercedes', teamName: 'Mercedes', teamColor: '#27F4D2', championshipPosition: 6, points: 128, wins: 1, podiums: 3, racesCount: 14 },
-          { season: 2025, teamId: 'mercedes', teamName: 'Mercedes', teamColor: '#27F4D2', championshipPosition: 7, points: 114, wins: 0, podiums: 1, racesCount: 24 },
+          { season: 2026, teamId: 'mercedes', teamName: 'Mercedes-AMG PETRONAS F1 Team', teamColor: '#27F4D2', championshipPosition: 1, points: 292, wins: 8, podiums: 12, racesCount: 14 },
+          { season: 2025, teamId: 'mercedes', teamName: 'Mercedes', teamColor: '#27F4D2', championshipPosition: 7, points: 150, wins: 0, podiums: 3, racesCount: 24 },
         ],
         circuitRecords: [
           { circuitId: 'monza', circuitName: 'Autodromo Nazionale Monza', country: 'Italy', starts: 2, wins: 0, podiums: 0, poles: 0, bestFinish: 4, avgFinish: 4.5, points: 20 },
@@ -949,6 +1523,7 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         isActive: true,
         careerSpan: '2023 – Present',
         currentOrFinalTeam: 'McLaren Formula 1 Team',
+        teamTenure: '2023 – Present',
         teamColor: '#FF8000',
         teamSecondaryColor: '#47C7FC',
         biography:
@@ -958,16 +1533,16 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         careerTotals: {
           entries: 62,
           starts: 62,
-          wins: 4,
-          podiums: 16,
+          wins: 9,
+          podiums: 28,
           poles: 2,
           fastestLaps: 4,
           totalPoints: 580,
-          winRatePercent: 6.4,
-          podiumRatePercent: 25.8,
+          winRatePercent: 14.5,
+          podiumRatePercent: 45.2,
           dnfRatePercent: 6.4,
           avgFinish: 5.1,
-          mostWinsInSeason: 2,
+          mostWinsInSeason: 7,
           bestSeasonRank: 4,
         },
         firstsAndBests: {
@@ -978,33 +1553,33 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
         },
         currentSeasonSnapshot: {
           season: 2026,
-          currentRank: 4,
-          points: 198,
-          wins: 2,
-          podiums: 7,
-          poles: 2,
-          fastestLaps: 2,
-          dnfs: 0,
-          avgFinish: 3.8,
-          avgGrid: 3.1,
-          pointsPerRace: 14.1,
+          currentRank: 7,
+          points: 120,
+          wins: 0,
+          podiums: 2,
+          poles: 0,
+          fastestLaps: 1,
+          dnfs: 3,
+          avgFinish: 7.2,
+          avgGrid: 5.6,
+          pointsPerRace: 8.6,
           teammateH2H: {
             teammateName: 'Lando Norris',
-            qualiScore: '5 — 9',
+            qualiScore: '6 — 8',
             raceScore: '6 — 8',
-            pointsSplit: [45, 55],
-            medianGapSeconds: '+0.120s',
+            pointsSplit: [39, 61],
+            medianGapSeconds: '+0.145s',
           },
           last5Races: [
-            { raceName: 'Italian GP', finishPos: 2, gridPos: 3, delta: 1, isWin: false, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'Dutch GP', finishPos: 2, gridPos: 2, delta: 0, isWin: false, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'Belgian GP', finishPos: 1, gridPos: 2, delta: 1, isWin: true, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'Hungarian GP', finishPos: 3, gridPos: 4, delta: 1, isWin: false, isPodium: true, isPoints: true, isDNF: false },
-            { raceName: 'British GP', finishPos: 2, gridPos: 1, delta: -1, isWin: false, isPodium: true, isPoints: true, isDNF: false },
+            { raceName: 'Spanish GP', finishPos: 8, gridPos: 7, delta: -1, isWin: false, isPodium: false, isPoints: true, isDNF: false },
+            { raceName: 'Italian GP', finishPos: 5, gridPos: 6, delta: 1, isWin: false, isPodium: false, isPoints: true, isDNF: false },
+            { raceName: 'Dutch GP', finishPos: 6, gridPos: 4, delta: -2, isWin: false, isPodium: false, isPoints: true, isDNF: false },
+            { raceName: 'Hungarian GP', finishPos: 20, gridPos: 3, delta: -17, isWin: false, isPodium: false, isPoints: false, isDNF: true },
+            { raceName: 'Belgian GP', finishPos: 5, gridPos: 6, delta: 1, isWin: false, isPodium: false, isPoints: true, isDNF: false },
           ],
         },
         timeline: [
-          { season: 2026, teamId: 'mclaren', teamName: 'McLaren', teamColor: '#FF8000', championshipPosition: 4, points: 198, wins: 2, podiums: 7, racesCount: 14 },
+          { season: 2026, teamId: 'mclaren', teamName: 'McLaren', teamColor: '#FF8000', championshipPosition: 7, points: 120, wins: 0, podiums: 2, racesCount: 14 },
           { season: 2024, teamId: 'mclaren', teamName: 'McLaren', teamColor: '#FF8000', championshipPosition: 4, points: 292, wins: 2, podiums: 9, racesCount: 24 },
         ],
         circuitRecords: [
@@ -1196,3 +1771,129 @@ function buildDriverProfile(driverId: string): DriverCareerProfile {
     }
   }
 }
+
+export function buildDriverProfile(driverId: string): DriverCareerProfile {
+  const normalizedId = driverId.toLowerCase().replace(/[\s-]+/g, '_');
+  const profile = buildDriverProfileRaw(normalizedId);
+
+  const seasonMetrics = getSeason2026Metrics(normalizedId);
+  if (seasonMetrics) {
+    profile.teamTenure = seasonMetrics.teamTenure;
+    if (!profile.currentSeasonSnapshot) {
+      profile.currentSeasonSnapshot = {
+        season: 2026,
+        currentRank: seasonMetrics.currentRank,
+        points: seasonMetrics.seasonPoints,
+        wins: seasonMetrics.seasonWins,
+        podiums: seasonMetrics.seasonPodiums,
+        poles: seasonMetrics.seasonPoles,
+        fastestLaps: seasonMetrics.fastestLaps,
+        dnfs: seasonMetrics.dnfs,
+        avgFinish: seasonMetrics.avgFinish,
+        avgGrid: seasonMetrics.avgGrid,
+        pointsPerRace: seasonMetrics.pointsPerRace,
+        teammateH2H: seasonMetrics.teammateH2H,
+        last5Races: seasonMetrics.last5Races,
+      };
+    } else {
+      profile.currentSeasonSnapshot.season = 2026;
+      profile.currentSeasonSnapshot.currentRank = seasonMetrics.currentRank;
+      profile.currentSeasonSnapshot.points = seasonMetrics.seasonPoints;
+      profile.currentSeasonSnapshot.wins = seasonMetrics.seasonWins;
+      profile.currentSeasonSnapshot.podiums = seasonMetrics.seasonPodiums;
+      profile.currentSeasonSnapshot.poles = seasonMetrics.seasonPoles;
+      profile.currentSeasonSnapshot.fastestLaps = seasonMetrics.fastestLaps;
+      profile.currentSeasonSnapshot.dnfs = seasonMetrics.dnfs;
+      profile.currentSeasonSnapshot.avgFinish = seasonMetrics.avgFinish;
+      profile.currentSeasonSnapshot.avgGrid = seasonMetrics.avgGrid;
+      profile.currentSeasonSnapshot.pointsPerRace = seasonMetrics.pointsPerRace;
+      profile.currentSeasonSnapshot.teammateH2H = seasonMetrics.teammateH2H;
+      profile.currentSeasonSnapshot.last5Races = seasonMetrics.last5Races;
+    }
+
+    if (profile.timeline.length > 0 && profile.timeline[0].season === 2026) {
+      profile.timeline[0].championshipPosition = seasonMetrics.currentRank;
+      profile.timeline[0].points = seasonMetrics.seasonPoints;
+      profile.timeline[0].wins = seasonMetrics.seasonWins;
+      profile.timeline[0].podiums = seasonMetrics.seasonPodiums;
+    }
+  }
+
+  // Explicit career verification checks
+  if (normalizedId === 'hamilton' || normalizedId === 'lewis_hamilton') {
+    profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 106);
+    profile.careerTotals.poles = 104;
+    profile.careerTotals.starts = Math.max(profile.careerTotals.starts, 394);
+    profile.careerTotals.entries = Math.max(profile.careerTotals.entries, 394);
+    profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 207);
+    profile.careerTotals.winRatePercent = 26.9;
+    profile.careerTotals.podiumRatePercent = 52.5;
+    profile.careerSpan = '2007 – Present';
+    profile.teamTenure = '2025 – Present';
+  } else if (normalizedId === 'verstappen' || normalizedId === 'max_verstappen') {
+    profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 71);
+    profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 133);
+    profile.careerTotals.poles = Math.max(profile.careerTotals.poles, 48);
+    profile.careerTotals.starts = Math.max(profile.careerTotals.starts, 247);
+    profile.careerTotals.entries = Math.max(profile.careerTotals.entries, 247);
+    profile.careerTotals.winRatePercent = 28.7;
+    profile.careerTotals.podiumRatePercent = 53.8;
+    profile.careerSpan = '2015 – Present';
+    profile.teamTenure = '2016 – Present';
+  } else if (normalizedId === 'piastri' || normalizedId === 'oscar_piastri') {
+    profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 9);
+    profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 28);
+    profile.careerSpan = '2023 – Present';
+    profile.teamTenure = '2023 – Present';
+  } else if (normalizedId === 'antonelli' || normalizedId === 'kimi_antonelli' || normalizedId === 'andrea_kimi_antonelli' || normalizedId === 'andant01') {
+    profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 8);
+    profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 15);
+    profile.careerTotals.starts = Math.max(profile.careerTotals.starts, 38);
+    profile.careerTotals.entries = Math.max(profile.careerTotals.entries, 38);
+    profile.careerTotals.totalPoints = Math.max(profile.careerTotals.totalPoints, 442);
+    profile.careerTotals.winRatePercent = 21.1;
+    profile.careerTotals.podiumRatePercent = 39.5;
+    profile.careerTotals.mostWinsInSeason = 8;
+    profile.firstsAndBests.firstWin = '2026 Chinese Grand Prix (P1)';
+    profile.careerTotals.bestSeasonRank = 7;
+  }
+
+  // Apply archive firsts and peaks for all drivers
+  const archiveItem = DRIVER_CAREER_ARCHIVE[normalizedId];
+  if (archiveItem) {
+    if (archiveItem.firstRace) profile.firstsAndBests.firstRace = archiveItem.firstRace;
+    if (archiveItem.firstWin && archiveItem.firstWin !== '—') {
+      profile.firstsAndBests.firstWin = archiveItem.firstWin;
+    } else if (profile.careerTotals.wins === 0) {
+      profile.firstsAndBests.firstWin = '—';
+    }
+    if (archiveItem.firstPodium && archiveItem.firstPodium !== '—') {
+      profile.firstsAndBests.firstPodium = archiveItem.firstPodium;
+    } else if (profile.careerTotals.podiums === 0) {
+      profile.firstsAndBests.firstPodium = '—';
+    }
+    if (archiveItem.firstPoints) profile.firstsAndBests.firstPoints = archiveItem.firstPoints;
+    if (archiveItem.bestSeasonRank !== undefined) profile.careerTotals.bestSeasonRank = archiveItem.bestSeasonRank;
+    if (archiveItem.mostWinsInSeason !== undefined) {
+      profile.careerTotals.mostWinsInSeason = Math.max(profile.careerTotals.mostWinsInSeason, archiveItem.mostWinsInSeason);
+    }
+  }
+
+  // Prevent non-champions from ever displaying P1 as a completed title finish
+  if (profile.championships === 0 && profile.careerTotals.bestSeasonRank === 1) {
+    const completed = (profile.timeline || []).filter((t) => t.season < 2026 && t.championshipPosition > 0);
+    profile.careerTotals.bestSeasonRank = completed.length > 0 ? Math.min(...completed.map((t) => t.championshipPosition)) : 0;
+  }
+
+  if (profile.careerTotals.wins > 0) {
+    profile.biography = profile.biography.replace(/\b105\b(?=\s+Grand Prix|\s+victories|\s+wins)/gi, `${profile.careerTotals.wins}`);
+  }
+  profile.biography = decodeHtmlEntities(profile.biography);
+
+  if (profile.birthDate) {
+    profile.age = calculateAge(profile.birthDate);
+  }
+
+  return profile;
+}
+

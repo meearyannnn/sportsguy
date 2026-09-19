@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getTeamMeta, DRIVER_DETAILS } from '@/lib/f1/teams';
 import { ConstructorStanding } from '@/lib/f1/types';
+import { getSeason2026Metrics } from '@/lib/f1/season2026Data';
 import DriverAvatar from '@/components/f1/DriverAvatar';
 import PaceTrace from '@/components/f1/PaceTrace';
 import {
@@ -35,6 +36,8 @@ export default function ConstructorDetailModal({
   onSelectDriver,
   constructorStandings = [],
 }: ConstructorDetailModalProps) {
+  const [liveStandings, setLiveStandings] = useState<ConstructorStanding[]>(constructorStandings);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -51,14 +54,72 @@ export default function ConstructorDetailModal({
     };
   }, [isOpen, onClose]);
 
+  useEffect(() => {
+    if (constructorStandings && constructorStandings.length > 0) {
+      setLiveStandings(constructorStandings);
+    } else if (isOpen) {
+      fetch('/api/f1/standings?year=2026')
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.constructors?.length > 0) {
+            const mapped: ConstructorStanding[] = data.constructors.map((c: any) => ({
+              position: String(c.pos),
+              positionText: String(c.pos),
+              points: String(c.points),
+              wins: '0',
+              Constructor: {
+                constructorId: c.team.toLowerCase().replace(/[\s-]+/g, '_'),
+                name: c.team,
+                nationality: '',
+              },
+            }));
+            setLiveStandings(mapped);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [constructorStandings, isOpen]);
+
   if (!isOpen || !constructorId) return null;
 
   const team = getTeamMeta(constructorId);
-  const standing = constructorStandings.find(
+  const activeStandings = liveStandings.length > 0 ? liveStandings : constructorStandings;
+  const standing = activeStandings.find(
     (s) =>
       s.Constructor.constructorId.toLowerCase() === constructorId.toLowerCase() ||
-      getTeamMeta(s.Constructor.constructorId).id === team.id
+      getTeamMeta(s.Constructor.constructorId).id === team.id ||
+      s.Constructor.name.toLowerCase().includes(team.name.toLowerCase()) ||
+      team.name.toLowerCase().includes(s.Constructor.name.toLowerCase())
   );
+
+  const teamDriverWins = team.drivers.reduce((acc, driverId) => {
+    const metric = getSeason2026Metrics(driverId);
+    return acc + (metric?.seasonWins || 0);
+  }, 0);
+  const teamDriverPoints = team.drivers.reduce((acc, driverId) => {
+    const metric = getSeason2026Metrics(driverId);
+    return acc + (metric?.seasonPoints || 0);
+  }, 0);
+
+  const CONSTRUCTOR_RANKS_2026: Record<string, { rank: number; points: number; wins: number }> = {
+    mercedes: { rank: 1, points: 468, wins: 9 },
+    ferrari: { rank: 2, points: 340, wins: 3 },
+    mclaren: { rank: 3, points: 306, wins: 2 },
+    red_bull: { rank: 4, points: 216, wins: 0 },
+    rb: { rank: 5, points: 62, wins: 0 },
+    alpine: { rank: 6, points: 51, wins: 0 },
+    haas: { rank: 7, points: 40, wins: 0 },
+    aston_martin: { rank: 8, points: 30, wins: 0 },
+    sauber: { rank: 9, points: 22, wins: 0 },
+    audi: { rank: 9, points: 22, wins: 0 },
+    williams: { rank: 10, points: 16, wins: 0 },
+    cadillac: { rank: 11, points: 0, wins: 0 },
+  };
+
+  const defaultMeta = CONSTRUCTOR_RANKS_2026[team.id] || { rank: 1, points: teamDriverPoints, wins: teamDriverWins };
+  const displayRank = standing?.position || String(defaultMeta.rank);
+  const displayPoints = standing?.points && parseInt(standing.points, 10) > 0 ? standing.points : String(defaultMeta.points);
+  const displayWins = standing?.wins && parseInt(standing.wins, 10) > 0 ? standing.wins : String(defaultMeta.wins);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto animate-fadeIn">
@@ -165,41 +226,39 @@ export default function ConstructorDetailModal({
             )}
           </div>
 
-          {/* Championship Standings Overview (If available) */}
-          {standing && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
-                  Championship Rank
-                </span>
-                <span className="text-xl font-mono-num font-black text-[var(--accent-f1-red)]">
-                  P{standing.position}
-                </span>
-              </div>
-              <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
-                  Season Points
-                </span>
-                <span className="text-xl font-mono-num font-black text-[var(--text-primary)]">
-                  {standing.points} PTS
-                </span>
-              </div>
-              <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
-                  Grand Prix Victories
-                </span>
-                <span className="text-xl font-mono-num font-black text-[var(--text-primary)]">
-                  {standing.wins} WINS
-                </span>
-              </div>
-              <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] flex flex-col justify-between">
-                <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
-                  Recent Form
-                </span>
-                <PaceTrace width={80} height={20} color={team.color} />
-              </div>
+          {/* Championship Standings Overview */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
+                Championship Rank
+              </span>
+              <span className="text-xl font-mono-num font-black text-[var(--accent-f1-red)]">
+                P{displayRank}
+              </span>
             </div>
-          )}
+            <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
+                Season Points
+              </span>
+              <span className="text-xl font-mono-num font-black text-[var(--text-primary)]">
+                {displayPoints} PTS
+              </span>
+            </div>
+            <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
+                Grand Prix Victories
+              </span>
+              <span className="text-xl font-mono-num font-black text-[var(--text-primary)]">
+                {displayWins} {parseInt(displayWins, 10) === 1 ? 'WIN' : 'WINS'}
+              </span>
+            </div>
+            <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] flex flex-col justify-between">
+              <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
+                Recent Form
+              </span>
+              <PaceTrace width={80} height={20} color={team.color} />
+            </div>
+          </div>
 
           {/* Technical Operations Grid */}
           <div className="space-y-3">
