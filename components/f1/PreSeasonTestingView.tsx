@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   PRESEASON_TESTING_SESSIONS,
   PRESEASON_TEAM_MILEAGE,
   TestingDriverResult,
   TestingTeamMileage,
+  TestingSessionData,
 } from '@/lib/f1/preSeasonTesting';
 import { getTeamMeta, DRIVER_DETAILS } from '@/lib/f1/teams';
 import DriverAvatar from '@/components/f1/DriverAvatar';
@@ -20,6 +21,7 @@ import {
   ChevronRight,
   TrendingUp,
   Award,
+  RefreshCw,
 } from 'lucide-react';
 
 interface PreSeasonTestingViewProps {
@@ -32,7 +34,33 @@ export default function PreSeasonTestingView({
   onSelectConstructor,
 }: PreSeasonTestingViewProps) {
   const [subTab, setSubTab] = useState<'laps' | 'mileage' | 'insights'>('laps');
-  const sessionData = PRESEASON_TESTING_SESSIONS[0];
+  const [sessionData, setSessionData] = useState<TestingSessionData>(PRESEASON_TESTING_SESSIONS[0]);
+  const [mileageData, setMileageData] = useState<TestingTeamMileage[]>(PRESEASON_TEAM_MILEAGE);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [lastSynced, setLastSynced] = useState<string | null>(null);
+
+  const fetchLiveTestingData = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/f1/testing');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success) {
+          if (json.session) setSessionData(json.session);
+          if (json.mileage && json.mileage.length > 0) setMileageData(json.mileage);
+          setLastSynced(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+        }
+      }
+    } catch (err) {
+      console.warn('Error fetching live testing data:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveTestingData();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -42,7 +70,7 @@ export default function PreSeasonTestingView({
         <div className="absolute right-0 top-0 w-64 h-64 bg-[var(--accent-f1-red)]/10 rounded-full filter blur-3xl pointer-events-none" />
 
         <div className="space-y-2 relative z-10">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="px-2.5 py-0.5 rounded text-xs font-hud font-black uppercase tracking-wider bg-[var(--accent-f1-red)]/20 text-[var(--accent-f1-red)] border border-[var(--accent-f1-red)]/40">
               OFFICIAL FIA TESTING BENCHMARKS
             </span>
@@ -50,6 +78,15 @@ export default function PreSeasonTestingView({
             <span className="text-xs font-mono-num text-[var(--text-secondary)]">
               {sessionData.date}
             </span>
+            <button
+              onClick={() => fetchLiveTestingData()}
+              disabled={isLoading}
+              title="Refresh live testing telemetry"
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors cursor-pointer ml-1"
+            >
+              <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>{isLoading ? 'SYNCING...' : lastSynced ? `LIVE SYNCED ${lastSynced}` : 'LIVE FIA FEED'}</span>
+            </button>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-hud font-black uppercase tracking-tight text-[var(--text-primary)]">
@@ -207,9 +244,9 @@ export default function PreSeasonTestingView({
       {subTab === 'mileage' && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {PRESEASON_TEAM_MILEAGE.map((tm) => {
+            {mileageData.map((tm) => {
               const team = getTeamMeta(tm.teamId);
-              const maxLaps = PRESEASON_TEAM_MILEAGE[0].totalLaps;
+              const maxLaps = mileageData[0]?.totalLaps || 400;
               const percent = Math.max(10, (tm.totalLaps / maxLaps) * 100);
 
               return (
