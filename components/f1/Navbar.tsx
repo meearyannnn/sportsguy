@@ -970,6 +970,62 @@ export default function Navbar({
         </div>
       </div>
 
+      {/* ── Mobile Horizontal Quick-Access Strip ── */}
+      <nav
+        aria-label="Mobile Navigation Strip"
+        className="lg:hidden w-full border-b overflow-x-auto touch-scroll no-scrollbar"
+        style={{
+          background: 'rgba(11,11,14,0.98)',
+          borderColor: 'var(--border-dim)',
+          padding: '6px 12px',
+        }}
+      >
+        <div className="flex items-center gap-1.5 w-max">
+          {[
+            { id: 'hub',       label: 'Home',      icon: Radio },
+            { id: 'calendar',  label: 'Calendar',  icon: Calendar },
+            { id: 'standings', label: 'Standings', icon: Trophy },
+            { id: 'battle',    label: 'Battle',    icon: Zap,        badge: 'NEW' },
+            { id: 'predict',   label: 'Predict',   icon: Calculator, badge: 'NEW' },
+            { id: 'fantasy',   label: 'Fantasy',   icon: Trophy,     badge: 'NEW' },
+            { id: 'timeline',  label: 'Timeline',  icon: Radio,      badge: 'NEW' },
+            { id: 'tyres',     label: 'Tyres',     icon: Gauge,      badge: 'NEW' },
+            { id: 'paddock',   label: 'Drivers',   icon: Users },
+            { id: 'live',      label: 'Live',      icon: Gauge },
+            { id: 'junior',    label: 'F2/F3',     icon: GraduationCap },
+            { id: 'news',      label: 'News',      icon: Newspaper },
+            { id: 'pitcrew',   label: 'Pit Crew',  icon: Wrench },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onTabChange(item.id as NavTab)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-hud uppercase tracking-wider font-bold shrink-0 transition-all cursor-pointer select-none"
+                style={{
+                  background: isActive ? 'var(--red)' : 'var(--bg-raised)',
+                  color: isActive ? '#fff' : 'var(--text-secondary)',
+                  border: `1px solid ${isActive ? 'var(--red)' : 'var(--border-dim)'}`,
+                  boxShadow: isActive ? '0 0 12px var(--red-glow)' : 'none',
+                }}
+              >
+                <Icon style={{ width: 12, height: 12, color: isActive ? '#fff' : 'var(--text-muted)' }} />
+                <span>{item.label}</span>
+                {item.badge && !isActive && (
+                  <span
+                    className="text-[8px] font-mono px-1 rounded font-black tracking-normal"
+                    style={{ background: 'var(--red-subtle)', color: 'var(--red)' }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
       {/* ── Mobile search drawer ─────────────────── */}
       {isMobileSearchOpen && (
         <div

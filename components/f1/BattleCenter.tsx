@@ -554,7 +554,7 @@ export default function BattleCenter({ driverStandings }: BattleCenterProps) {
 
           {activeView === 'season' && (
             <div
-              className="rounded-xl border overflow-hidden"
+              className="rounded-xl border overflow-x-auto touch-scroll"
               style={{ backgroundColor: 'var(--bg-raised)', borderColor: 'var(--border-dim)' }}
             >
               <table className="w-full text-xs">

@@ -16,6 +16,7 @@ import {
   Search,
   X,
   MoreHorizontal,
+  Zap,
 } from 'lucide-react';
 import { NavTab } from './Navbar';
 
@@ -36,17 +37,26 @@ export default function BottomNav({ activeTab, onTabChange, onOpenSearch }: Bott
     { id: 'live',      label: 'Live',     icon: Gauge    },
   ];
 
-  const secondaryTabs: Array<{ id: NavTab; label: string; icon: any }> = [
-    { id: 'junior',   label: 'Feeder Series (F2/F3)', icon: GraduationCap },
-    { id: 'news',     label: 'News Wire',              icon: Newspaper     },
-    { id: 'pitcrew',  label: 'Pit Crew Championship',  icon: Wrench        },
-    { id: 'testing',  label: 'Pre-Season Testing',     icon: Gauge         },
-    { id: 'analytics',label: 'Intelligence',           icon: Calculator    },
-    { id: 'stories',  label: 'Briefings',              icon: BookOpen      },
-    { id: 'archive',  label: 'Vault 1950+',            icon: History       },
-    { id: 'about',    label: 'Why This Looks Like This',icon: BookOpen     },
+  const featureModes: Array<{ id: NavTab; label: string; icon: any; badge?: string; desc?: string }> = [
+    { id: 'battle',   label: 'Battle Center (H2H)',    icon: Zap,        badge: 'NEW', desc: 'Driver vs Driver telemetry & radar' },
+    { id: 'predict',  label: 'Prediction Engine',      icon: Calculator, badge: 'NEW', desc: 'Circuit affinity & AI win probabilities' },
+    { id: 'fantasy',  label: 'Fantasy F1',             icon: Trophy,     badge: 'NEW', desc: 'Team manager with $100M budget & chips' },
+    { id: 'timeline', label: 'Championship Timeline',  icon: Radio,      badge: 'NEW', desc: 'Animated round progression & gap mode' },
+    { id: 'tyres',    label: 'Tire Strategy',          icon: Gauge,      badge: 'NEW', desc: 'Compound choices & pit stop timelines' },
   ];
 
+  const archiveTabs: Array<{ id: NavTab; label: string; icon: any; desc?: string }> = [
+    { id: 'junior',   label: 'Feeder Series (F2/F3)',  icon: GraduationCap, desc: 'Academy & junior ladder standings' },
+    { id: 'news',     label: 'News Wire',              icon: Newspaper,     desc: 'FIA briefings & paddock updates' },
+    { id: 'pitcrew',  label: 'Pit Crew Championship',  icon: Wrench,        desc: 'Sub-2s pit stop leaderboards' },
+    { id: 'testing',  label: 'Pre-Season Testing',     icon: Gauge,         desc: 'Lap counts & pre-season lap times' },
+    { id: 'analytics',label: 'Intelligence Vault',     icon: Calculator,    desc: 'Advanced sector telemetry' },
+    { id: 'stories',  label: 'Briefings',              icon: BookOpen,      desc: 'Technical dossiers & history' },
+    { id: 'archive',  label: 'Vault 1950+',            icon: History,       desc: 'Every GP & champion in history' },
+    { id: 'about',    label: 'Design Statement',       icon: BookOpen,      desc: 'Why this looks like this' },
+  ];
+
+  const secondaryTabs = [...featureModes, ...archiveTabs];
   const isMoreActive = secondaryTabs.some((t) => t.id === activeTab);
 
   return (
@@ -66,8 +76,8 @@ export default function BottomNav({ activeTab, onTabChange, onOpenSearch }: Bott
               border: '1px solid var(--border-mid)',
               borderRadius: 'var(--r-lg)',
               boxShadow: 'var(--shadow-modal)',
-              padding: '12px',
-              maxHeight: '70vh',
+              padding: '14px',
+              maxHeight: '75vh',
               overflowY: 'auto',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -77,22 +87,25 @@ export default function BottomNav({ activeTab, onTabChange, onOpenSearch }: Bott
               className="flex items-center justify-between"
               style={{
                 paddingBottom: 10,
-                marginBottom: 6,
+                marginBottom: 8,
                 borderBottom: '1px solid var(--border-dim)',
               }}
             >
-              <span
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 700,
-                  fontSize: 11,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                More Telemetry &amp; Archives
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-3.5 rounded-full bg-[var(--red)]" />
+                <span
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 800,
+                    fontSize: 12,
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  All Modes &amp; Telemetry
+                </span>
+              </div>
               <button
                 onClick={() => setShowMoreMenu(false)}
                 className="flex items-center justify-center cursor-pointer"
@@ -110,42 +123,86 @@ export default function BottomNav({ activeTab, onTabChange, onOpenSearch }: Bott
               </button>
             </div>
 
-            {/* Drawer items */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {secondaryTabs.map((sec) => {
-                const SecIcon = sec.icon;
-                const isSec = activeTab === sec.id;
-                return (
-                  <button
-                    key={sec.id}
-                    onClick={() => { onTabChange(sec.id); setShowMoreMenu(false); }}
-                    className="flex items-center gap-3 cursor-pointer transition-colors"
-                    style={{
-                      minHeight: 46,
-                      padding: '10px 12px',
-                      borderRadius: 'var(--r-md)',
-                      background: isSec ? 'var(--red)' : 'transparent',
-                      border: isSec ? 'none' : '1px solid transparent',
-                      color: isSec ? '#fff' : 'var(--text-secondary)',
-                      fontFamily: 'var(--font-display)',
-                      fontWeight: 700,
-                      fontSize: 13,
-                      letterSpacing: '0.08em',
-                      textTransform: 'uppercase',
-                      textAlign: 'left',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isSec) e.currentTarget.style.background = 'var(--bg-highlight)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isSec) e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    <SecIcon style={{ width: 16, height: 16, flexShrink: 0 }} />
-                    <span>{sec.label}</span>
-                  </button>
-                );
-              })}
+            {/* Section 1: 2026 Features */}
+            <div className="space-y-1.5 mb-3">
+              <div className="text-[10px] uppercase font-hud font-bold tracking-widest text-[var(--red)] px-2 pt-1">
+                2026 Feature Modes
+              </div>
+              <div className="grid grid-cols-1 gap-1">
+                {featureModes.map((sec) => {
+                  const SecIcon = sec.icon;
+                  const isSec = activeTab === sec.id;
+                  return (
+                    <button
+                      key={sec.id}
+                      onClick={() => { onTabChange(sec.id); setShowMoreMenu(false); }}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-colors cursor-pointer"
+                      style={{
+                        background: isSec ? 'var(--red)' : 'var(--bg-raised)',
+                        border: isSec ? '1px solid var(--red)' : '1px solid var(--border-dim)',
+                        color: isSec ? '#fff' : 'var(--text-primary)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <SecIcon style={{ width: 15, height: 15, color: isSec ? '#fff' : 'var(--red)', shrink: 0 }} />
+                        <div className="min-w-0">
+                          <div className="text-xs font-hud font-bold uppercase tracking-wider truncate">
+                            {sec.label}
+                          </div>
+                          {sec.desc && (
+                            <div className="text-[9px] text-[var(--text-muted)] truncate" style={{ color: isSec ? 'rgba(255,255,255,0.75)' : undefined }}>
+                              {sec.desc}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {sec.badge && (
+                        <span
+                          className="text-[8px] font-mono font-black uppercase px-1.5 py-0.5 rounded ml-2 shrink-0"
+                          style={{
+                            backgroundColor: isSec ? 'rgba(255,255,255,0.25)' : 'var(--red)',
+                            color: '#fff',
+                          }}
+                        >
+                          {sec.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Section 2: Feeds & Archives */}
+            <div className="space-y-1.5">
+              <div className="text-[10px] uppercase font-hud font-bold tracking-widest text-[var(--text-muted)] px-2 pt-2 border-t border-[var(--border-dim)]">
+                Paddock Intelligence &amp; Feeds
+              </div>
+              <div className="grid grid-cols-1 gap-1">
+                {archiveTabs.map((sec) => {
+                  const SecIcon = sec.icon;
+                  const isSec = activeTab === sec.id;
+                  return (
+                    <button
+                      key={sec.id}
+                      onClick={() => { onTabChange(sec.id); setShowMoreMenu(false); }}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition-colors cursor-pointer"
+                      style={{
+                        background: isSec ? 'var(--red)' : 'transparent',
+                        border: isSec ? 'none' : '1px solid transparent',
+                        color: isSec ? '#fff' : 'var(--text-secondary)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <SecIcon style={{ width: 14, height: 14, color: isSec ? '#fff' : 'var(--text-muted)', shrink: 0 }} />
+                        <span className="text-xs font-hud font-bold uppercase tracking-wider truncate">
+                          {sec.label}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
