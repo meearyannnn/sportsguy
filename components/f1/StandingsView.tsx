@@ -13,6 +13,7 @@ import { ChevronDown, ChevronUp, ChevronRight } from 'lucide-react';
 interface StandingsViewProps {
   driverStandings: DriverStanding[];
   constructorStandings: ConstructorStanding[];
+  season?: string;
   onSelectDriver?: (driverId: string) => void;
   onSelectConstructor?: (constructorId: string) => void;
 }
@@ -20,6 +21,7 @@ interface StandingsViewProps {
 export default function StandingsView({
   driverStandings,
   constructorStandings,
+  season = '2026',
   onSelectDriver,
   onSelectConstructor,
 }: StandingsViewProps) {
@@ -43,7 +45,7 @@ export default function StandingsView({
             </span>
             <span className="text-[var(--text-muted)] text-xs">•</span>
             <span className="text-xs font-mono-num text-[var(--text-muted)]">
-              2024 WORLD CHAMPIONSHIP
+              {season} WORLD CHAMPIONSHIP
             </span>
             <span className="text-[var(--text-muted)] text-xs hidden sm:inline">•</span>
             <FreshnessBadge
