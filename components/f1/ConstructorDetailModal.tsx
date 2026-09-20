@@ -243,47 +243,36 @@ export default function ConstructorDetailModal({
           </div>
 
           {/* Championship Standings Overview */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-hud font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              <span>2026 Constructor Championship Standing</span>
-              <span className="text-[10px] font-mono text-[var(--accent-f1-red)] font-semibold">
-                OFFICIAL FIA CLASSIFICATION
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
+                Championship Rank
+              </span>
+              <span className="text-xl font-mono-num font-black text-[var(--accent-f1-red)]">
+                P{displayRank}
               </span>
             </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
-                  Season Rank
-                </span>
-                <span className="text-xl font-mono-num font-black text-[var(--accent-f1-red)]">
-                  P{displayRank}
-                </span>
-              </div>
-              <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
-                  Season Points
-                </span>
-                <span className="text-xl font-mono-num font-black text-[var(--text-primary)]">
-                  {displayPoints} PTS
-                </span>
-              </div>
-              <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
-                  2026 Victories
-                </span>
-                <span className="text-xl font-mono-num font-black text-[var(--text-primary)]">
-                  {displayWins} {parseInt(displayWins, 10) === 1 ? 'WIN' : 'WINS'}
-                </span>
-              </div>
-              <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
-                <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
-                  All-Time GP Wins
-                </span>
-                <span className="text-xl font-mono-num font-black text-amber-400">
-                  {team.allTimeWins ?? 'N/A'} {team.allTimeWins === 1 ? 'WIN' : 'WINS'}
-                </span>
-              </div>
+            <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
+                Season Points
+              </span>
+              <span className="text-xl font-mono-num font-black text-[var(--text-primary)]">
+                {displayPoints} PTS
+              </span>
+            </div>
+            <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)]">
+              <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
+                Grand Prix Victories
+              </span>
+              <span className="text-xl font-mono-num font-black text-[var(--text-primary)]">
+                {displayWins} {parseInt(displayWins, 10) === 1 ? 'WIN' : 'WINS'}
+              </span>
+            </div>
+            <div className="p-3.5 rounded-lg bg-[var(--bg-primary)] border border-[var(--border-subtle)] flex flex-col justify-between">
+              <span className="text-[10px] font-hud font-bold uppercase text-[var(--text-muted)] block">
+                Recent Form
+              </span>
+              <PaceTrace width={80} height={20} color={team.color} />
             </div>
           </div>
 
