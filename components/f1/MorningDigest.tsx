@@ -17,8 +17,14 @@ export default function MorningDigest({
   results = [],
   onViewResults,
 }: MorningDigestProps) {
+  const formatCircuitName = (name?: string) => {
+    if (!name) return 'Official FIA Circuit';
+    if (name.toLowerCase().includes('madring')) return 'Madrid Street Circuit';
+    return name;
+  };
+
   const displayRaceName = raceName || 'Most Recent Grand Prix';
-  const displayCircuitName = circuitName || 'Official FIA Circuit';
+  const displayCircuitName = formatCircuitName(circuitName);
 
   // Derive top 3 from actual fetched race results
   const top3 = results.slice(0, 3).map((r, i) => ({

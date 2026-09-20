@@ -133,14 +133,19 @@ export default function HeroLiveHub({
     }
   };
 
+  const rawCircuitName = nextRace?.Circuit?.circuitName || 'Marina Bay Street Circuit';
+  const displayCircuitTitle = rawCircuitName.toLowerCase().includes('madring')
+    ? 'Madrid Street Circuit'
+    : rawCircuitName;
+
   return (
-    <section className="relative w-full rounded border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-6 sm:p-8 overflow-hidden">
+    <section className="relative w-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-6 sm:p-8 overflow-hidden shadow-sm">
       {/* Faint Circuit Track Watermark at 2-3% opacity */}
       <CircuitWatermark circuitId={circuitId} />
       {/* Hero Header & Status */}
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-3">
-          <span className="px-2.5 py-1 rounded text-xs font-hud font-bold tracking-wider uppercase bg-[var(--accent-f1-red)]/10 text-[var(--accent-f1-red)] border border-[var(--accent-f1-red)]/25 flex items-center gap-2">
+          <span className="px-2.5 py-1 rounded-full text-xs font-hud font-bold tracking-wider uppercase bg-[var(--accent-f1-red)]/10 text-[var(--accent-f1-red)] border border-[var(--accent-f1-red)]/25 flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-f1-red)] animate-live-pulse"></span>
             ROUND {nextRace?.round || '17'} • {nextRace?.season || '2026'} CHAMPIONSHIP
           </span>
@@ -171,12 +176,12 @@ export default function HeroLiveHub({
               {nextRace?.raceName || 'Singapore Grand Prix'}
             </h1>
             <p className="mt-2 text-xs sm:text-sm text-[var(--text-secondary)] max-w-xl">
-              {nextRace?.Circuit?.circuitName || 'Marina Bay Street Circuit'} — Official Formula 1 World Championship weekend.
+              {displayCircuitTitle} — Official Formula 1 World Championship weekend.
             </p>
           </div>
 
           {/* Countdown Clock HUD — Asymmetric Telemetry Tower */}
-          <div className="bg-[var(--bg-primary)] rounded-none p-4 border border-[var(--border-subtle)] timing-tower-rail is-live">
+          <div className="bg-[var(--bg-primary)]/90 backdrop-blur-sm rounded-xl p-4 border border-[var(--border-subtle)] timing-tower-rail is-live">
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-hud font-bold tracking-wider text-[var(--text-muted)] uppercase flex items-center gap-1.5">
                 <Clock className="w-3.5 h-3.5 text-[var(--accent-f1-red)]" />
@@ -188,7 +193,7 @@ export default function HeroLiveHub({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex-1 min-w-[90px] bg-[var(--bg-secondary)] rounded-sm p-3 border border-[var(--border-subtle)]">
+              <div className="flex-1 min-w-[90px] bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border-subtle)]">
                 <div className="text-[9px] font-mono-num font-bold text-[var(--text-muted)] uppercase tracking-widest">
                   DAYS
                 </div>
@@ -197,7 +202,7 @@ export default function HeroLiveHub({
                 </div>
               </div>
 
-              <div className="flex-1 min-w-[90px] bg-[var(--bg-secondary)] rounded-sm p-3 border border-[var(--border-subtle)]">
+              <div className="flex-1 min-w-[90px] bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border-subtle)]">
                 <div className="text-[9px] font-mono-num font-bold text-[var(--text-muted)] uppercase tracking-widest">
                   HOURS
                 </div>
@@ -206,7 +211,7 @@ export default function HeroLiveHub({
                 </div>
               </div>
 
-              <div className="w-20 bg-[var(--bg-secondary)] rounded-sm p-3 border border-[var(--border-subtle)]">
+              <div className="w-20 bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--border-subtle)]">
                 <div className="text-[9px] font-mono-num font-bold text-[var(--text-muted)] uppercase tracking-widest">
                   MIN
                 </div>
@@ -215,7 +220,7 @@ export default function HeroLiveHub({
                 </div>
               </div>
 
-              <div className="w-20 bg-[var(--bg-secondary)] rounded-sm p-3 border border-[var(--accent-f1-red)]/50 relative overflow-hidden">
+              <div className="w-20 bg-[var(--bg-secondary)] rounded-xl p-3 border border-[var(--accent-f1-red)]/50 relative overflow-hidden">
                 <div className="text-[9px] font-mono-num font-bold text-[var(--accent-f1-red)] uppercase tracking-widest flex items-center justify-between">
                   <span>SEC</span>
                   <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-f1-red)] animate-live-pulse" />
@@ -229,9 +234,9 @@ export default function HeroLiveHub({
 
           {/* Timezone-Honest Inconvenience Plain Language Framing */}
           {useLocalTime && honestTime && (
-            <div className={`p-3 rounded-sm border flex items-center justify-between gap-3 text-xs ${honestTime.badgeBg} ${honestTime.badgeBorder}`}>
+            <div className={`p-3 rounded-lg border flex items-center justify-between gap-3 text-xs ${honestTime.badgeBg} ${honestTime.badgeBorder}`}>
               <div className="flex items-center gap-2 min-w-0">
-                <span className={`px-2 py-0.5 rounded-none font-hud font-bold uppercase text-[10px] tracking-wider border ${honestTime.badgeColor} ${honestTime.badgeBorder} bg-black/20 shrink-0`}>
+                <span className={`px-2 py-0.5 rounded font-hud font-bold uppercase text-[10px] tracking-wider border ${honestTime.badgeColor} ${honestTime.badgeBorder} bg-black/20 shrink-0`}>
                   {honestTime.badgeLabel}
                 </span>
                 <span className="text-[var(--text-secondary)] font-sans text-xs truncate">
@@ -248,7 +253,7 @@ export default function HeroLiveHub({
           <div className="flex flex-wrap gap-2 pt-1">
             <button
               onClick={() => onNavigateTab('live')}
-              className="px-4 py-2 rounded-sm bg-[var(--accent-f1-red)] text-white font-hud font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer"
+              className="px-4 py-2.5 rounded-lg bg-[var(--accent-f1-red)] text-white font-hud font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer shadow-sm"
             >
               <Gauge className="w-3.5 h-3.5" />
               <span>INITIALIZE LIVE TELEMETRY</span>
@@ -258,7 +263,7 @@ export default function HeroLiveHub({
             {onToggleGlance && (
               <button
                 onClick={onToggleGlance}
-                className="px-3.5 py-2 rounded-sm bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-hud font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-2.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-hud font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
                 title="Open distraction-free Glance Mode"
               >
                 <Zap className="w-3.5 h-3.5 text-amber-400" />
@@ -268,7 +273,7 @@ export default function HeroLiveHub({
 
             <button
               onClick={() => onNavigateTab('calendar')}
-              className="px-3.5 py-2 rounded-sm bg-[var(--bg-tertiary)] hover:bg-[var(--border-hover)] border border-[var(--border-subtle)] text-[var(--text-primary)] font-hud font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3.5 py-2.5 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--border-hover)] border border-[var(--border-subtle)] text-[var(--text-primary)] font-hud font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <CalendarIcon className="w-3.5 h-3.5 text-[var(--text-secondary)]" />
               <span>INSPECT CALENDAR</span>
@@ -276,7 +281,7 @@ export default function HeroLiveHub({
 
             <button
               onClick={() => onNavigateTab('paddock')}
-              className="px-3.5 py-2 rounded-sm bg-[var(--bg-tertiary)] hover:bg-[var(--border-hover)] border border-[var(--border-subtle)] text-[var(--text-primary)] font-hud font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
+              className="px-3.5 py-2.5 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--border-hover)] border border-[var(--border-subtle)] text-[var(--text-primary)] font-hud font-bold text-xs tracking-wider uppercase flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <span>OPEN H2H TELEMETRY</span>
             </button>
@@ -286,12 +291,12 @@ export default function HeroLiveHub({
         {/* Right Column: Track Telemetry, Weather & Weekend Sessions */}
         <div className="lg:col-span-5 flex flex-col space-y-4">
           {/* Circuit Specs Card */}
-          <div className="bg-[var(--bg-primary)] rounded-sm p-4 border border-[var(--border-subtle)]">
+          <div className="bg-[var(--bg-primary)]/90 backdrop-blur-sm rounded-xl p-4 border border-[var(--border-subtle)]">
             <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
               <span className="text-xs font-hud font-bold tracking-wider text-[var(--text-muted)] uppercase">
                 CIRCUIT TELEMETRY SPEC
               </span>
-              <span className="text-[11px] px-2 py-0.5 rounded-sm bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-subtle)] font-mono-num font-semibold">
+              <span className="text-[11px] px-2 py-0.5 rounded-md bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-subtle)] font-mono-num font-semibold">
                 LAP RECORD: {circuitMeta.lapRecord}
               </span>
             </div>
@@ -390,7 +395,7 @@ export default function HeroLiveHub({
           </div>
 
           {/* Weekend Session Schedule */}
-          <div className="bg-[var(--bg-primary)] rounded p-4 border border-[var(--border-subtle)]">
+          <div className="bg-[var(--bg-primary)]/90 backdrop-blur-sm rounded-xl p-4 border border-[var(--border-subtle)]">
             <div className="flex items-center justify-between pb-2 border-b border-[var(--border-subtle)] text-xs font-hud font-bold tracking-wider text-[var(--text-muted)] uppercase">
               <span>WEEKEND TIMETABLE</span>
               <span className="text-[var(--accent-f1-red)]">

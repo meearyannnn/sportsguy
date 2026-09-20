@@ -507,6 +507,8 @@ export default function ApexHome() {
                       onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
                       showFeed={false}
                       onToggleGlance={() => setIsGlanceModeOpen(true)}
+                      nextRace={nextRace}
+                      useLocalTime={useLocalTime}
                     />
                   </div>
                 </div>
@@ -607,6 +609,8 @@ export default function ApexHome() {
                   onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
                   showFeed={true}
                   onToggleGlance={() => setIsGlanceModeOpen(true)}
+                  nextRace={nextRace}
+                  useLocalTime={useLocalTime}
                 />
               </div>
             )}
