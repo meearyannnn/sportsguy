@@ -15,15 +15,19 @@ function TimelineChart({
   animateToRound,
   selectedDrivers,
   gapMode,
+  hoverRound,
+  onHoverRound,
 }: {
   timeline: SeasonTimeline;
   animateToRound: number;
   selectedDrivers: Set<string>;
   gapMode: boolean;
+  hoverRound: number | null;
+  onHoverRound: (round: number | null) => void;
 }) {
-  const WIDTH = 680;
-  const HEIGHT = 300;
-  const PAD = { top: 16, right: 80, bottom: 32, left: 52 };
+  const WIDTH = 760;
+  const HEIGHT = 320;
+  const PAD = { top: 20, right: 96, bottom: 36, left: 52 };
   const chartW = WIDTH - PAD.left - PAD.right;
   const chartH = HEIGHT - PAD.top - PAD.bottom;
 
@@ -38,7 +42,7 @@ function TimelineChart({
     const raw = round.driverPoints[driverId] ?? 0;
     if (gapMode) {
       const leader = leaderPoints(round);
-      return leader - raw; // gap to leader (0 = leader, higher = further behind)
+      return Math.max(0, leader - raw); // gap to leader (0 = leader, higher = further behind)
     }
     return raw;
   }
@@ -49,14 +53,14 @@ function TimelineChart({
       .map((id) => getY(r, id))
   );
   const maxY = Math.max(...allY, 1);
-  const minY = gapMode ? 0 : 0;
+  const minY = 0;
 
   const xScale = (roundIdx: number) =>
     PAD.left + (roundIdx / Math.max(visibleRounds.length - 1, 1)) * chartW;
 
   const yScale = (val: number) => {
     if (gapMode) {
-      // 0 at top (leader), positive values go down
+      // 0 at top (leader), higher gaps go down
       return PAD.top + (val / Math.max(maxY, 1)) * chartH;
     }
     return PAD.top + chartH - ((val - minY) / Math.max(maxY - minY, 1)) * chartH;
@@ -64,17 +68,54 @@ function TimelineChart({
 
   // Y grid lines
   const yTicks = [];
-  const yStep = gapMode ? Math.ceil(maxY / 4 / 10) * 10 : Math.ceil(maxY / 5 / 25) * 25;
+  const yStep = gapMode ? Math.max(10, Math.ceil(maxY / 4 / 10) * 10) : Math.max(25, Math.ceil(maxY / 5 / 25) * 25);
   for (let v = 0; v <= maxY; v += yStep) yTicks.push(v);
+  if (!yTicks.includes(0)) yTicks.unshift(0);
+
+  // Anti-collision label positioning for the end of the line
+  const lastRound = visibleRounds[visibleRounds.length - 1];
+  const activeDriverIds = timeline.driverIds.filter((id) => selectedDrivers.has(id));
+
+  const labels = activeDriverIds
+    .map((id) => {
+      const rawY = yScale(getY(lastRound, id));
+      const pts = lastRound.driverPoints[id] ?? 0;
+      return {
+        id,
+        code: timeline.driverCodes[id] ?? id.slice(0, 3).toUpperCase(),
+        color: timeline.constructorColors[id] ?? '#888888',
+        pts,
+        rawY,
+        y: rawY,
+      };
+    })
+    .sort((a, b) => a.rawY - b.rawY);
+
+  // Anti-overlap relaxation algorithm
+  const MIN_SPACING = 12;
+  for (let i = 1; i < labels.length; i++) {
+    if (labels[i].y - labels[i - 1].y < MIN_SPACING) {
+      labels[i].y = labels[i - 1].y + MIN_SPACING;
+    }
+  }
+  for (let i = labels.length - 2; i >= 0; i--) {
+    if (labels[i + 1].y - labels[i].y < MIN_SPACING) {
+      labels[i].y = labels[i + 1].y - MIN_SPACING;
+    }
+  }
+
+  const labelMap = new Map(labels.map((l) => [l.id, l]));
+  const activeHoverIdx = hoverRound !== null ? visibleRounds.findIndex((r) => r.round === hoverRound) : -1;
 
   return (
-    <div className="w-full overflow-x-auto">
+    <div className="w-full overflow-x-auto select-none touch-scroll">
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className="w-full min-w-[400px]"
+        className="w-full min-w-[540px]"
         style={{ fontFamily: 'var(--font-mono)' }}
+        onMouseLeave={() => onHoverRound(null)}
       >
-        {/* Grid lines */}
+        {/* Y Grid lines */}
         {yTicks.map((v) => (
           <g key={v}>
             <line
@@ -87,12 +128,12 @@ function TimelineChart({
               strokeDasharray="3,4"
             />
             <text
-              x={PAD.left - 6}
+              x={PAD.left - 8}
               y={yScale(v)}
               textAnchor="end"
               dominantBaseline="middle"
               fontSize="8"
-              fill="rgba(255,255,255,0.25)"
+              fill="rgba(255,255,255,0.30)"
             >
               {gapMode ? (v === 0 ? 'Leader' : `+${v}`) : v}
             </text>
@@ -101,67 +142,111 @@ function TimelineChart({
 
         {/* Round labels (x-axis) */}
         {visibleRounds.map((r, i) => {
-          if (i % Math.ceil(visibleRounds.length / 10) !== 0 && i !== visibleRounds.length - 1) return null;
+          const step = Math.max(1, Math.ceil(visibleRounds.length / 12));
+          if (i % step !== 0 && i !== visibleRounds.length - 1) return null;
           return (
             <text
               key={r.round}
               x={xScale(i)}
-              y={PAD.top + chartH + 14}
+              y={PAD.top + chartH + 16}
               textAnchor="middle"
               fontSize="7.5"
-              fill="rgba(255,255,255,0.30)"
+              fill="rgba(255,255,255,0.35)"
             >
               R{r.round}
             </text>
           );
         })}
 
+        {/* Hover vertical line */}
+        {activeHoverIdx >= 0 && (
+          <line
+            x1={xScale(activeHoverIdx)}
+            y1={PAD.top}
+            x2={xScale(activeHoverIdx)}
+            y2={PAD.top + chartH}
+            stroke="var(--red)"
+            strokeWidth="1.5"
+            strokeDasharray="2,2"
+            opacity={0.7}
+          />
+        )}
+
         {/* Driver lines */}
-        {timeline.driverIds
-          .filter((id) => selectedDrivers.has(id))
-          .map((driverId) => {
-            const color = timeline.constructorColors[driverId] ?? '#888888';
-            const points = visibleRounds.map((r, i) => ({
-              x: xScale(i),
-              y: yScale(getY(r, driverId)),
-            }));
-            const pathD = points
-              .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
-              .join(' ');
+        {activeDriverIds.map((driverId) => {
+          const color = timeline.constructorColors[driverId] ?? '#888888';
+          const points = visibleRounds.map((r, i) => ({
+            x: xScale(i),
+            y: yScale(getY(r, driverId)),
+          }));
+          const pathD = points
+            .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
+            .join(' ');
 
-            const last = points[points.length - 1];
-            const lastRound = visibleRounds[visibleRounds.length - 1];
-            const lastPts = getY(lastRound, driverId);
+          const last = points[points.length - 1];
+          const labelInfo = labelMap.get(driverId);
+          const labelY = labelInfo ? labelInfo.y : last.y;
+          const displayPts = lastRound.driverPoints[driverId] ?? 0;
 
-            return (
-              <g key={driverId}>
-                <path
-                  d={pathD}
-                  fill="none"
+          return (
+            <g key={driverId}>
+              {/* Path */}
+              <path
+                d={pathD}
+                fill="none"
+                stroke={color}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity={0.88}
+              />
+              {/* Point on last round */}
+              <circle cx={last.x} cy={last.y} r="3" fill={color} />
+
+              {/* Connecting leader line if label was adjusted */}
+              {Math.abs(labelY - last.y) > 2 && (
+                <line
+                  x1={last.x}
+                  y1={last.y}
+                  x2={last.x + 8}
+                  y2={labelY}
                   stroke={color}
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={0.85}
+                  strokeWidth="0.8"
+                  opacity={0.4}
                 />
-                {/* End dot */}
-                <circle cx={last.x} cy={last.y} r="3" fill={color} />
-                {/* Label */}
-                <text
-                  x={last.x + 5}
-                  y={last.y}
-                  dominantBaseline="middle"
-                  fontSize="8"
-                  fill={color}
-                  fontFamily="var(--font-display)"
-                  fontWeight="700"
-                  letterSpacing="0.5"
-                >
-                  {timeline.driverCodes[driverId]}
-                </text>
-              </g>
-            );
-          })}
+              )}
+
+              {/* Anti-collision label */}
+              <text
+                x={last.x + 10}
+                y={labelY}
+                dominantBaseline="middle"
+                fontSize="8"
+                fill={color}
+                fontFamily="var(--font-display)"
+                fontWeight="800"
+                letterSpacing="0.4"
+              >
+                {timeline.driverCodes[driverId]} <tspan fontSize="7" opacity="0.85" fontFamily="var(--font-mono)">{gapMode ? `+${getY(lastRound, driverId)}` : displayPts}</tspan>
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Invisible hit targets for round hovering */}
+        {visibleRounds.map((r, i) => (
+          <rect
+            key={r.round}
+            x={xScale(i) - (chartW / visibleRounds.length) / 2}
+            y={PAD.top}
+            width={chartW / visibleRounds.length}
+            height={chartH}
+            fill="transparent"
+            className="cursor-pointer"
+            onMouseEnter={() => onHoverRound(r.round)}
+            onClick={() => onHoverRound(r.round)}
+          />
+        ))}
       </svg>
     </div>
   );
@@ -185,7 +270,7 @@ function DriverPill({
   return (
     <button
       onClick={onToggle}
-      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[10px] font-hud uppercase tracking-wider transition-all duration-150"
+      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[10px] font-hud uppercase tracking-wider transition-all duration-150 cursor-pointer"
       style={{
         backgroundColor: selected ? `${color}18` : 'var(--bg-raised)',
         borderColor: selected ? color : 'var(--border-dim)',
@@ -206,6 +291,7 @@ export default function ChampionshipTimeline({ season = 'current' }: Championshi
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [animateToRound, setAnimateToRound] = useState(0);
+  const [hoverRound, setHoverRound] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [gapMode, setGapMode] = useState(false);
   const [selectedDrivers, setSelectedDrivers] = useState<Set<string>>(new Set());
@@ -343,6 +429,60 @@ export default function ChampionshipTimeline({ season = 'current' }: Championshi
             ))}
           </div>
 
+          {/* Active / Hovered Round HUD */}
+          {(() => {
+            const activeRoundObj = timeline.rounds.find(
+              (r) => r.round === (hoverRound ?? animateToRound)
+            ) ?? timeline.rounds[timeline.rounds.length - 1];
+
+            if (!activeRoundObj) return null;
+
+            const sortedStanding = timeline.driverIds
+              .filter((id) => selectedDrivers.has(id))
+              .map((id) => ({
+                id,
+                code: timeline.driverCodes[id] ?? id,
+                color: timeline.constructorColors[id] ?? '#888',
+                pts: activeRoundObj.driverPoints[id] ?? 0,
+              }))
+              .sort((a, b) => b.pts - a.pts);
+
+            return (
+              <div
+                className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl border flex-wrap text-xs"
+                style={{ backgroundColor: 'var(--bg-raised)', borderColor: 'var(--border-dim)' }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-[var(--red)]/15 text-[var(--red)] font-bold">
+                    Round {activeRoundObj.round}
+                  </span>
+                  <span className="font-hud font-bold text-[var(--text-primary)]">
+                    {activeRoundObj.raceName}
+                  </span>
+                  {hoverRound && (
+                    <span className="text-[10px] font-mono text-[var(--text-muted)] italic">
+                      (hovering)
+                    </span>
+                  )}
+                </div>
+
+                {/* Micro standings badges for this round */}
+                <div className="flex items-center gap-2 overflow-x-auto max-w-full py-0.5">
+                  {sortedStanding.slice(0, 6).map((d, rank) => (
+                    <div
+                      key={d.id}
+                      className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[var(--bg-surface)] border border-[var(--border-dim)] font-mono text-[10px] shrink-0"
+                    >
+                      <span className="text-[var(--text-muted)]">{rank + 1}.</span>
+                      <span className="font-bold" style={{ color: d.color }}>{d.code}</span>
+                      <span className="text-[var(--text-primary)] font-semibold">{d.pts} pts</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Chart */}
           <div
             className="rounded-xl border overflow-hidden p-4"
@@ -353,6 +493,8 @@ export default function ChampionshipTimeline({ season = 'current' }: Championshi
               animateToRound={animateToRound}
               selectedDrivers={selectedDrivers}
               gapMode={gapMode}
+              hoverRound={hoverRound}
+              onHoverRound={setHoverRound}
             />
           </div>
 
