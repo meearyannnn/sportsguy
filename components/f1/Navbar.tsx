@@ -84,8 +84,10 @@ export default function Navbar({
 }: NavbarProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [internalMobileSearch, setInternalMobileSearch] = useState(false);
-  const isMobileSearchOpen = controlledMobileSearch !== undefined ? controlledMobileSearch : internalMobileSearch;
-  const toggleMobileSearch = onToggleMobileSearch || (() => setInternalMobileSearch((prev) => !prev));
+  const isMobileSearchOpen =
+    controlledMobileSearch !== undefined ? controlledMobileSearch : internalMobileSearch;
+  const toggleMobileSearch =
+    onToggleMobileSearch || (() => setInternalMobileSearch((prev) => !prev));
   const closeMobileSearch = () => {
     if (controlledMobileSearch && onToggleMobileSearch) {
       onToggleMobileSearch();
@@ -98,57 +100,53 @@ export default function Navbar({
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close more dropdown on click outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handler = (e: MouseEvent) => {
       if (moreDropdownRef.current && !moreDropdownRef.current.contains(e.target as Node)) {
         setIsMoreOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   const secondaryTabs: Array<{ id: NavTab; label: string; icon: any }> = [
-    { id: 'junior', label: 'Feeder Series (F2 / F3)', icon: GraduationCap },
-    { id: 'news', label: 'News Wire', icon: Newspaper },
-    { id: 'pitcrew', label: 'Pit Crew Championship', icon: Wrench },
-    { id: 'testing', label: 'Pre-Season Testing', icon: Gauge },
-    { id: 'analytics', label: 'Intelligence', icon: Calculator },
-    { id: 'stories', label: 'Briefings', icon: BookOpen },
-    { id: 'archive', label: 'Vault 1950+', icon: History },
-    { id: 'results', label: 'Results Archive', icon: Trophy },
-    { id: 'about', label: 'Why This Looks Like This', icon: BookOpen },
+    { id: 'junior',   label: 'Feeder Series (F2 / F3)',  icon: GraduationCap },
+    { id: 'news',     label: 'News Wire',                 icon: Newspaper },
+    { id: 'pitcrew',  label: 'Pit Crew Championship',     icon: Wrench },
+    { id: 'testing',  label: 'Pre-Season Testing',        icon: Gauge },
+    { id: 'analytics',label: 'Intelligence',              icon: Calculator },
+    { id: 'stories',  label: 'Briefings',                 icon: BookOpen },
+    { id: 'archive',  label: 'Vault 1950+',               icon: History },
+    { id: 'results',  label: 'Results Archive',           icon: Trophy },
+    { id: 'about',    label: 'Why This Looks Like This',  icon: BookOpen },
   ];
 
   const isSecondaryActive = secondaryTabs.some((t) => t.id === activeTab);
 
-  // Close search dropdown on click outside
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handler = (e: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setIsSearchOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Keyboard shortcut: Esc closes search
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsSearchOpen(false);
         closeMobileSearch();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
   }, [controlledMobileSearch, onToggleMobileSearch]);
 
   const cleanQuery = searchQuery.trim().toLowerCase();
 
-  // Search Results Filtering
   const matchingDrivers = cleanQuery
     ? (driverStandings.length > 0
         ? driverStandings
@@ -158,7 +156,12 @@ export default function Navbar({
               const code = (d.code || '').toLowerCase();
               const num = d.permanentNumber || '';
               const team = (s.Constructors[0]?.name || '').toLowerCase();
-              return full.includes(cleanQuery) || code.includes(cleanQuery) || num === cleanQuery || team.includes(cleanQuery);
+              return (
+                full.includes(cleanQuery) ||
+                code.includes(cleanQuery) ||
+                num === cleanQuery ||
+                team.includes(cleanQuery)
+              );
             })
             .slice(0, 5)
         : Object.entries(DRIVER_DETAILS)
@@ -184,13 +187,11 @@ export default function Navbar({
 
   const matchingConstructors = cleanQuery
     ? Object.values(F1_TEAMS)
-        .filter((t) => {
-          return (
-            t.name.toLowerCase().includes(cleanQuery) ||
-            t.fullName.toLowerCase().includes(cleanQuery) ||
-            t.id.toLowerCase().includes(cleanQuery)
-          );
-        })
+        .filter((t) =>
+          t.name.toLowerCase().includes(cleanQuery) ||
+          t.fullName.toLowerCase().includes(cleanQuery) ||
+          t.id.toLowerCase().includes(cleanQuery)
+        )
         .slice(0, 3)
     : [];
 
@@ -209,9 +210,7 @@ export default function Navbar({
     matchingDrivers.length > 0 || matchingConstructors.length > 0 || matchingRaces.length > 0;
 
   const handleSelectDriverMatch = (driverId: string) => {
-    if (onSelectDriver) {
-      onSelectDriver(driverId);
-    }
+    if (onSelectDriver) onSelectDriver(driverId);
     onSearchChange('');
     setIsSearchOpen(false);
     closeMobileSearch();
@@ -225,201 +224,374 @@ export default function Navbar({
   };
 
   const handleSelectRaceMatch = (round: string) => {
-    if (onSelectRound) {
-      onSelectRound(round);
-    }
+    if (onSelectRound) onSelectRound(round);
     onTabChange('results');
     onSearchChange('');
     setIsSearchOpen(false);
     closeMobileSearch();
   };
 
+  /* ── Primary nav tabs ─────────────────────── */
+  const primaryTabs = [
+    { id: 'hub',       label: 'Home',      icon: Radio    },
+    { id: 'calendar',  label: 'Calendar',  icon: Calendar },
+    { id: 'standings', label: 'Standings', icon: Trophy   },
+    { id: 'paddock',   label: 'Drivers',   icon: Users    },
+    { id: 'live',      label: 'Live',      icon: Gauge    },
+  ] as const;
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[var(--border-subtle)] bg-[var(--bg-primary)] transition-colors">
-      {/* Top Precision Timing Ticker */}
-      <div className="w-full bg-[var(--bg-secondary)] border-b border-[var(--border-subtle)] py-1 px-4 text-xs flex items-center justify-between">
-        <div className="flex items-center gap-3 overflow-hidden text-[11px] font-mono-num">
-          {/* Signal Indicator */}
+    <header className="sticky top-0 z-50 w-full" style={{ fontFamily: 'var(--font-display)' }}>
+      {/* ── Ticker bar ─────────────────────────── */}
+      <div
+        className="w-full border-b px-4 flex items-center justify-between"
+        style={{
+          background: '#0B0B0E',
+          borderColor: 'var(--border-dim)',
+          height: '26px',
+        }}
+      >
+        {/* Left: live dot + ticker */}
+        <div className="flex items-center gap-3 overflow-hidden text-[11px]">
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-f1-red)] animate-live-pulse"></span>
-            <span className="font-hud font-bold text-[var(--text-primary)] uppercase tracking-wider text-[10px]">
-              LIVE TELEMETRY FEED
+            <span
+              className="w-1.5 h-1.5 rounded-full animate-live-pulse shrink-0"
+              style={{ backgroundColor: 'var(--red)' }}
+            />
+            <span
+              className="font-bold uppercase tracking-[0.12em]"
+              style={{ color: 'var(--text-primary)', fontSize: '10px' }}
+            >
+              LIVE FEED
             </span>
           </div>
 
-          <span className="text-[var(--border-subtle)] hidden sm:inline">|</span>
+          <span style={{ color: 'var(--border-mid)' }} className="hidden sm:inline">|</span>
 
-          {/* Ticker marquee */}
-          <div className="hidden sm:flex items-center gap-4 text-[var(--text-secondary)] whitespace-nowrap overflow-hidden">
-            <span>NEXT GP: <strong className="text-[var(--text-primary)]">{nextRaceName.toUpperCase()}</strong></span>
-            <span>•</span>
-            <span>PRECISION TIMING INTERVALS: <strong>100MS</strong></span>
-            <span>•</span>
-            <span>FIA 2026 WORLD CHAMPIONSHIP REGULATIONS</span>
-          </div>
-        </div>
-
-        {/* Timezone Switcher Pill */}
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={onToggleTimezone}
-            className="flex items-center gap-1 text-[10px] font-mono-num text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-            title="Toggle between Track Local Time & Your System Time"
+          <div
+            className="hidden sm:flex items-center gap-5 whitespace-nowrap overflow-hidden"
+            style={{ color: 'var(--text-secondary)', fontSize: '10px', letterSpacing: '0.06em' }}
           >
-            <span>TZ:</span>
-            <span className="font-bold text-[var(--text-primary)]">
-              {useLocalTime ? 'LOCAL' : 'TRACK'}
+            <span>
+              NEXT GP:{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>
+                {nextRaceName.toUpperCase()}
+              </strong>
             </span>
-          </button>
+            <span style={{ color: 'var(--border-mid)' }}>•</span>
+            <span>FIA 2026 REGULATIONS</span>
+            <span style={{ color: 'var(--border-mid)' }}>•</span>
+            <span>PRECISION INTERVALS: 100MS</span>
+          </div>
         </div>
+
+        {/* Right: TZ toggle */}
+        <button
+          onClick={onToggleTimezone}
+          className="flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+          style={{ color: 'var(--text-muted)', fontSize: '10px', letterSpacing: '0.06em' }}
+          title="Toggle Track / Local time"
+        >
+          <span>TZ:</span>
+          <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
+            {useLocalTime ? 'LOCAL' : 'TRACK'}
+          </span>
+        </button>
       </div>
 
-      {/* Main Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-14 gap-4">
-        {/* Left: APEX Brand Identifier & Explicit Separator */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div
-            className="flex items-center gap-2.5 cursor-pointer select-none group"
+      {/* ── Main bar ───────────────────────────── */}
+      <div
+        className="border-b"
+        style={{
+          background: 'rgba(11,11,14,0.95)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          borderColor: 'var(--border-dim)',
+        }}
+      >
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 flex items-center h-14 gap-4">
+
+          {/* Brand */}
+          <button
             onClick={() => onTabChange('hub')}
+            className="flex items-center gap-2.5 shrink-0 group cursor-pointer"
+            style={{ background: 'none', border: 'none', padding: 0 }}
           >
-            {/* Flat timing symbol with signal red accent */}
-            <div className="w-8 h-8 rounded border border-[var(--border-subtle)] bg-[var(--bg-secondary)] flex items-center justify-center font-hud font-black text-sm text-[var(--text-primary)] relative overflow-hidden group-hover:border-[var(--border-hover)] transition-colors shrink-0">
-              <div className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--accent-f1-red)]"></div>
-              <span>A</span>
+            {/* Red-bar A mark */}
+            <div
+              className="relative flex items-center justify-center overflow-hidden shrink-0"
+              style={{
+                width: 32,
+                height: 32,
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--border-dim)',
+                borderRadius: 'var(--r-sm)',
+              }}
+            >
+              <div
+                className="absolute left-0 top-0 bottom-0"
+                style={{ width: 3, background: 'var(--red)' }}
+              />
+              <span
+                className="font-bold"
+                style={{ color: 'var(--text-primary)', fontSize: 14, letterSpacing: '0.06em' }}
+              >
+                A
+              </span>
             </div>
             <div className="flex items-baseline gap-1.5">
-              <span className="font-hud font-black text-xl tracking-widest text-[var(--text-primary)]">
+              <span
+                className="font-black tracking-[0.14em] uppercase"
+                style={{ color: 'var(--text-primary)', fontSize: 18 }}
+              >
                 APEX
               </span>
-              <span className="text-[9px] font-mono-num text-[var(--text-muted)] uppercase tracking-wider hidden sm:inline">
+              <span
+                className="hidden sm:inline font-bold uppercase tracking-[0.10em]"
+                style={{ color: 'var(--text-muted)', fontSize: 9 }}
+              >
                 TIMING HUD
               </span>
             </div>
-          </div>
+          </button>
 
-          {/* Explicit Hairline Divider */}
-          <div className="hidden lg:block h-6 w-px bg-[var(--border-subtle)] mx-1 shrink-0" aria-hidden="true" />
-        </div>
+          {/* Hairline divider */}
+          <div
+            className="hidden lg:block shrink-0 mx-1"
+            style={{ width: 1, height: 22, background: 'var(--border-dim)' }}
+            aria-hidden="true"
+          />
 
-        {/* Desktop Navigation Tabs — 5 Primary Items + Secondary Dropdown */}
-        <nav className="hidden lg:flex items-center gap-1 border border-[var(--border-subtle)] rounded p-1 bg-[var(--bg-secondary)] shrink-0">
-          {[
-            { id: 'hub', label: 'Home', icon: Radio },
-            { id: 'calendar', label: 'Calendar', icon: Calendar },
-            { id: 'standings', label: 'Standings', icon: Trophy },
-            { id: 'paddock', label: 'Drivers', icon: Users },
-            { id: 'live', label: 'Live', icon: Gauge },
-          ].map((t) => {
-            const Icon = t.icon;
-            const isActive = activeTab === t.id;
-            return (
+          {/* Desktop nav pill */}
+          <nav
+            className="hidden lg:flex items-center gap-0.5 shrink-0"
+            style={{
+              background: 'var(--bg-raised)',
+              border: '1px solid var(--border-dim)',
+              borderRadius: 'var(--r-md)',
+              padding: '4px',
+            }}
+          >
+            {primaryTabs.map((t) => {
+              const Icon = t.icon;
+              const isActive = activeTab === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => { onTabChange(t.id as NavTab); setIsMoreOpen(false); }}
+                  className="relative flex items-center gap-1.5 cursor-pointer transition-colors"
+                  style={{
+                    padding: '6px 14px',
+                    borderRadius: 'var(--r-sm)',
+                    background: isActive ? 'var(--bg-highlight)' : 'transparent',
+                    color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: 12,
+                    letterSpacing: '0.10em',
+                    textTransform: 'uppercase',
+                    border: 'none',
+                    minWidth: 72,
+                    justifyContent: 'center',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  <Icon
+                    className="shrink-0"
+                    style={{
+                      width: 13,
+                      height: 13,
+                      color: isActive ? 'var(--red)' : 'var(--text-muted)',
+                    }}
+                  />
+                  <span>{t.label}</span>
+                  {/* Active bottom accent */}
+                  {isActive && (
+                    <span
+                      className="absolute bottom-0 left-3 right-3 rounded-full"
+                      style={{ height: 2, background: 'var(--red)', borderRadius: 99 }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+
+            {/* More dropdown */}
+            <div className="relative" ref={moreDropdownRef}>
               <button
-                key={t.id}
-                onClick={() => {
-                  onTabChange(t.id as NavTab);
-                  setIsMoreOpen(false);
+                onClick={() => setIsMoreOpen((p) => !p)}
+                className="flex items-center gap-1 cursor-pointer transition-colors"
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 'var(--r-sm)',
+                  background: isSecondaryActive ? 'var(--bg-highlight)' : 'transparent',
+                  color: isSecondaryActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  letterSpacing: '0.10em',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  minWidth: 64,
+                  justifyContent: 'center',
+                  whiteSpace: 'nowrap',
                 }}
-                className={`px-3 py-1.5 min-w-[76px] justify-center rounded text-xs font-hud font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center gap-1.5 whitespace-nowrap ${
-                  isActive
-                    ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border-b-2 border-[var(--accent-f1-red)]'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
-                }`}
               >
-                <Icon className={`w-3.5 h-3.5 shrink-0 ${isActive ? 'text-[var(--accent-f1-red)]' : 'text-[var(--text-muted)]'}`} />
-                <span>{t.label}</span>
+                <span>
+                  {isSecondaryActive
+                    ? secondaryTabs.find((s) => s.id === activeTab)?.label || 'More'
+                    : 'More'}
+                </span>
+                <ChevronDown
+                  style={{
+                    width: 12,
+                    height: 12,
+                    color: 'var(--text-muted)',
+                    transform: isMoreOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 180ms',
+                  }}
+                />
               </button>
-            );
-          })}
 
-          {/* Secondary "More" Dropdown */}
-          <div className="relative" ref={moreDropdownRef}>
-            <button
-              onClick={() => setIsMoreOpen((prev) => !prev)}
-              className={`px-3 py-1.5 min-w-[72px] justify-center rounded text-xs font-hud font-bold tracking-wider uppercase transition-colors cursor-pointer flex items-center gap-1 whitespace-nowrap ${
-                isSecondaryActive
-                  ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border-b-2 border-[var(--accent-f1-red)]'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'
-              }`}
-            >
-              <span>{isSecondaryActive ? secondaryTabs.find((s) => s.id === activeTab)?.label || 'More' : 'More'}</span>
-              <ChevronDown className={`w-3 h-3 text-[var(--text-muted)] transition-transform duration-200 ${isMoreOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {isMoreOpen && (
-              <div className="absolute left-0 mt-1.5 w-48 rounded-sm bg-[var(--bg-secondary)] border border-[var(--border-subtle)] p-1 z-50 divide-y divide-[var(--border-subtle)]">
-                <div className="space-y-0.5 pb-1">
+              {isMoreOpen && (
+                <div
+                  className="absolute left-0 z-50 animate-fade-in"
+                  style={{
+                    top: 'calc(100% + 8px)',
+                    width: 210,
+                    background: 'var(--bg-overlay)',
+                    border: '1px solid var(--border-mid)',
+                    borderRadius: 'var(--r-md)',
+                    boxShadow: 'var(--shadow-modal)',
+                    padding: '6px',
+                  }}
+                >
                   {secondaryTabs.map((sec) => {
                     const SecIcon = sec.icon;
-                    const isSecActive = activeTab === sec.id;
+                    const isSec = activeTab === sec.id;
                     return (
                       <button
                         key={sec.id}
-                        onClick={() => {
-                          onTabChange(sec.id);
-                          setIsMoreOpen(false);
+                        onClick={() => { onTabChange(sec.id); setIsMoreOpen(false); }}
+                        className="w-full flex items-center gap-2 cursor-pointer transition-colors"
+                        style={{
+                          padding: '8px 10px',
+                          borderRadius: 'var(--r-sm)',
+                          background: isSec ? 'var(--red)' : 'transparent',
+                          color: isSec ? '#fff' : 'var(--text-secondary)',
+                          fontFamily: 'var(--font-display)',
+                          fontWeight: 700,
+                          fontSize: 12,
+                          letterSpacing: '0.08em',
+                          textTransform: 'uppercase',
+                          border: 'none',
+                          textAlign: 'left',
                         }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-sm flex items-center justify-between text-xs font-hud font-bold uppercase transition-colors cursor-pointer ${
-                          isSecActive
-                            ? 'bg-[var(--accent-f1-red)] text-white'
-                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-tertiary)] hover:text-[var(--text-primary)]'
-                        }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <SecIcon className="w-3.5 h-3.5 shrink-0" />
-                          <span>{sec.label}</span>
-                        </div>
+                        <SecIcon style={{ width: 13, height: 13, flexShrink: 0 }} />
+                        <span>{sec.label}</span>
                       </button>
                     );
                   })}
                 </div>
-              </div>
-            )}
-          </div>
-        </nav>
+              )}
+            </div>
+          </nav>
 
-        {/* Right: Search, Theme & Actions (Fixed width, never clipped) */}
-        <div className="flex items-center gap-2 shrink-0" ref={searchContainerRef}>
-          {/* Desktop Search Box with Instant Dropdown */}
-          <div className="relative hidden md:block w-48 xl:w-56 shrink-0">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)] pointer-events-none" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                onSearchChange(e.target.value);
-                setIsSearchOpen(true);
-              }}
-              onFocus={() => setIsSearchOpen(true)}
-              placeholder="Search driver, team, GP..."
-              className="w-full bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded pl-8 pr-7 py-1.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--text-muted)] transition-colors font-hud"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => {
-                  onSearchChange('');
-                  setIsSearchOpen(false);
+          {/* Spacer */}
+          <div className="flex-1" />
+
+          {/* Right actions */}
+          <div className="flex items-center gap-2 shrink-0" ref={searchContainerRef}>
+
+            {/* Desktop search */}
+            <div className="relative hidden md:block" style={{ width: 200 }}>
+              <Search
+                className="absolute pointer-events-none"
+                style={{
+                  left: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 13,
+                  height: 13,
+                  color: 'var(--text-muted)',
                 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)] cursor-pointer"
-                title="Clear search"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            )}
+              />
+              <input
+                ref={inputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => { onSearchChange(e.target.value); setIsSearchOpen(true); }}
+                onFocus={() => setIsSearchOpen(true)}
+                placeholder="Driver, team, GP..."
+                style={{
+                  width: '100%',
+                  background: 'var(--bg-raised)',
+                  border: '1px solid var(--border-dim)',
+                  borderRadius: 'var(--r-sm)',
+                  padding: '6px 28px 6px 32px',
+                  fontSize: 12,
+                  fontFamily: 'var(--font-body)',
+                  color: 'var(--text-primary)',
+                  outline: 'none',
+                  transition: 'border-color 150ms',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.borderColor = 'var(--border-mid)')}
+                onMouseLeave={(e) => (e.currentTarget.style.borderColor = isSearchOpen ? 'var(--border-mid)' : 'var(--border-dim)')}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => { onSearchChange(''); setIsSearchOpen(false); }}
+                  className="absolute cursor-pointer"
+                  style={{
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'var(--text-muted)',
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                  }}
+                >
+                  <X style={{ width: 12, height: 12 }} />
+                </button>
+              )}
 
-            {/* Instant Search Dropdown Palette */}
-            {isSearchOpen && searchQuery.trim().length > 0 && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-sm z-50 overflow-hidden text-xs max-h-96 overflow-y-auto">
-                {hasResults ? (
-                  <div className="divide-y divide-[var(--border-subtle)]">
-                    {/* Drivers Matches */}
-                    {matchingDrivers.length > 0 && (
-                      <div className="p-2">
-                        <div className="text-[10px] font-hud font-bold text-[var(--text-muted)] uppercase tracking-wider px-2 py-1 flex items-center justify-between">
-                          <span>Drivers</span>
-                          <span>Click for dossier</span>
-                        </div>
-                        <div className="space-y-0.5">
+              {/* Search dropdown */}
+              {isSearchOpen && cleanQuery.length > 0 && (
+                <div
+                  className="absolute left-0 right-0 z-50 animate-fade-in overflow-hidden"
+                  style={{
+                    top: 'calc(100% + 6px)',
+                    background: 'var(--bg-overlay)',
+                    border: '1px solid var(--border-mid)',
+                    borderRadius: 'var(--r-md)',
+                    boxShadow: 'var(--shadow-modal)',
+                    maxHeight: 360,
+                    overflowY: 'auto',
+                    fontSize: 12,
+                  }}
+                >
+                  {hasResults ? (
+                    <>
+                      {matchingDrivers.length > 0 && (
+                        <div style={{ padding: '8px 8px 4px' }}>
+                          <div
+                            style={{
+                              padding: '2px 6px 6px',
+                              fontSize: 10,
+                              fontFamily: 'var(--font-display)',
+                              fontWeight: 700,
+                              letterSpacing: '0.12em',
+                              textTransform: 'uppercase',
+                              color: 'var(--text-muted)',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                            }}
+                          >
+                            <span>Drivers</span>
+                            <span>Click for dossier</span>
+                          </div>
                           {matchingDrivers.map((standing) => {
                             const d = standing.Driver;
                             const team = standing.Constructors[0]
@@ -429,200 +601,472 @@ export default function Navbar({
                               <button
                                 key={d.driverId}
                                 onClick={() => handleSelectDriverMatch(d.driverId)}
-                                className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)] flex items-center justify-between gap-2 transition-colors cursor-pointer group"
+                                className="w-full flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                                style={{
+                                  padding: '7px 10px',
+                                  borderRadius: 'var(--r-sm)',
+                                  background: 'transparent',
+                                  border: 'none',
+                                  textAlign: 'left',
+                                  color: 'var(--text-primary)',
+                                }}
+                                onMouseEnter={(e) =>
+                                  (e.currentTarget.style.background = 'var(--bg-highlight)')
+                                }
+                                onMouseLeave={(e) =>
+                                  (e.currentTarget.style.background = 'transparent')
+                                }
                               >
                                 <div className="flex items-center gap-2 min-w-0">
                                   <div
-                                    className="w-1 h-4 rounded-full shrink-0"
-                                    style={{ backgroundColor: team.color }}
-                                  ></div>
-                                  <span className="font-mono-num font-bold text-[11px] text-[var(--text-muted)] w-5 text-right shrink-0">
+                                    className="shrink-0 rounded-full"
+                                    style={{ width: 3, height: 16, background: team.color }}
+                                  />
+                                  <span
+                                    style={{
+                                      fontFamily: 'var(--font-mono)',
+                                      fontSize: 10,
+                                      color: 'var(--text-muted)',
+                                      width: 24,
+                                      textAlign: 'right',
+                                      flexShrink: 0,
+                                    }}
+                                  >
                                     #{d.permanentNumber || '—'}
                                   </span>
-                                  <span className="font-hud font-bold uppercase truncate text-[var(--text-primary)] group-hover:text-white">
+                                  <span
+                                    style={{
+                                      fontFamily: 'var(--font-display)',
+                                      fontWeight: 700,
+                                      fontSize: 13,
+                                      letterSpacing: '0.06em',
+                                      textTransform: 'uppercase',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                    }}
+                                  >
                                     {d.givenName} <strong>{d.familyName}</strong>
                                   </span>
-                                  <span className="text-[10px] text-[var(--text-muted)] truncate hidden sm:inline">
+                                  <span
+                                    className="hidden sm:inline truncate"
+                                    style={{ fontSize: 10, color: 'var(--text-muted)' }}
+                                  >
                                     ({standing.Constructors[0]?.name || team.name})
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0">
                                   <PaceTrace driverId={d.driverId} width={32} height={10} />
-                                  <ChevronRight className="w-3 h-3 text-[var(--text-muted)] group-hover:text-white" />
+                                  <ChevronRight style={{ width: 12, height: 12, color: 'var(--text-muted)' }} />
                                 </div>
                               </button>
                             );
                           })}
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Constructors Matches */}
-                    {matchingConstructors.length > 0 && (
-                      <div className="p-2">
-                        <div className="text-[10px] font-hud font-bold text-[var(--text-muted)] uppercase tracking-wider px-2 py-1">
-                          Teams & Constructors
-                        </div>
-                        <div className="space-y-0.5">
+                      {matchingConstructors.length > 0 && (
+                        <div
+                          style={{
+                            borderTop: '1px solid var(--border-dim)',
+                            padding: '8px 8px 4px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              padding: '2px 6px 6px',
+                              fontSize: 10,
+                              fontFamily: 'var(--font-display)',
+                              fontWeight: 700,
+                              letterSpacing: '0.12em',
+                              textTransform: 'uppercase',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            Teams &amp; Constructors
+                          </div>
                           {matchingConstructors.map((c) => (
                             <button
                               key={c.id}
                               onClick={handleSelectConstructorMatch}
-                              className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)] flex items-center justify-between gap-2 transition-colors cursor-pointer group"
+                              className="w-full flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                              style={{
+                                padding: '7px 10px',
+                                borderRadius: 'var(--r-sm)',
+                                background: 'transparent',
+                                border: 'none',
+                                textAlign: 'left',
+                                color: 'var(--text-primary)',
+                              }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = 'var(--bg-highlight)')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background = 'transparent')
+                              }
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <span
-                                  className="w-2.5 h-2.5 rounded-full shrink-0 border border-black/30"
-                                  style={{ backgroundColor: c.color }}
-                                ></span>
-                                <span className="font-hud font-bold uppercase truncate text-[var(--text-primary)] group-hover:text-white">
+                                  className="shrink-0"
+                                  style={{
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: '50%',
+                                    background: c.color,
+                                    border: '1px solid rgba(0,0,0,0.3)',
+                                    display: 'inline-block',
+                                  }}
+                                />
+                                <span
+                                  style={{
+                                    fontFamily: 'var(--font-display)',
+                                    fontWeight: 700,
+                                    fontSize: 13,
+                                    letterSpacing: '0.06em',
+                                    textTransform: 'uppercase',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
                                   {c.fullName}
                                 </span>
                               </div>
-                              <span className="text-[10px] font-hud text-[var(--text-muted)] group-hover:text-white uppercase">
+                              <span
+                                style={{
+                                  fontSize: 10,
+                                  fontFamily: 'var(--font-display)',
+                                  fontWeight: 700,
+                                  color: 'var(--text-muted)',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.06em',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
                                 View Paddock →
                               </span>
                             </button>
                           ))}
                         </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Grand Prix Calendar Matches */}
-                    {matchingRaces.length > 0 && (
-                      <div className="p-2">
-                        <div className="text-[10px] font-hud font-bold text-[var(--text-muted)] uppercase tracking-wider px-2 py-1">
-                          Grand Prix Schedule
-                        </div>
-                        <div className="space-y-0.5">
+                      {matchingRaces.length > 0 && (
+                        <div
+                          style={{
+                            borderTop: '1px solid var(--border-dim)',
+                            padding: '8px 8px 4px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              padding: '2px 6px 6px',
+                              fontSize: 10,
+                              fontFamily: 'var(--font-display)',
+                              fontWeight: 700,
+                              letterSpacing: '0.12em',
+                              textTransform: 'uppercase',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
+                            Grand Prix Schedule
+                          </div>
                           {matchingRaces.map((r) => (
                             <button
                               key={r.round}
                               onClick={() => handleSelectRaceMatch(r.round)}
-                              className="w-full text-left px-2.5 py-1.5 rounded hover:bg-[var(--bg-tertiary)] flex items-center justify-between gap-2 transition-colors cursor-pointer group"
+                              className="w-full flex items-center justify-between gap-2 cursor-pointer"
+                              style={{
+                                padding: '7px 10px',
+                                borderRadius: 'var(--r-sm)',
+                                background: 'transparent',
+                                border: 'none',
+                                textAlign: 'left',
+                                color: 'var(--text-primary)',
+                              }}
+                              onMouseEnter={(e) =>
+                                (e.currentTarget.style.background = 'var(--bg-highlight)')
+                              }
+                              onMouseLeave={(e) =>
+                                (e.currentTarget.style.background = 'transparent')
+                              }
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <Flag className="w-3 h-3 text-[var(--accent-f1-red)] shrink-0" />
-                                <span className="font-mono-num text-[11px] text-[var(--text-muted)] shrink-0">
+                                <Flag
+                                  style={{ width: 12, height: 12, color: 'var(--red)', flexShrink: 0 }}
+                                />
+                                <span
+                                  style={{
+                                    fontFamily: 'var(--font-mono)',
+                                    fontSize: 10,
+                                    color: 'var(--text-muted)',
+                                    flexShrink: 0,
+                                  }}
+                                >
                                   R{r.round}
                                 </span>
-                                <span className="font-hud font-bold uppercase truncate text-[var(--text-primary)] group-hover:text-white">
+                                <span
+                                  style={{
+                                    fontFamily: 'var(--font-display)',
+                                    fontWeight: 700,
+                                    fontSize: 13,
+                                    letterSpacing: '0.06em',
+                                    textTransform: 'uppercase',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
                                   {r.raceName}
                                 </span>
                               </div>
-                              <span className="text-[10px] font-mono-num text-[var(--text-muted)]">
+                              <span
+                                style={{
+                                  fontFamily: 'var(--font-mono)',
+                                  fontSize: 10,
+                                  color: 'var(--text-muted)',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
                                 {r.date}
                               </span>
                             </button>
                           ))}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-[var(--text-muted)] space-y-1">
-                    <p className="text-xs">No matching driver, team, or circuit for &quot;{searchQuery}&quot;</p>
-                    <p className="text-[10px]">Try &quot;Verstappen&quot;, &quot;Norris&quot;, &quot;Ferrari&quot;, or &quot;Monaco&quot;</p>
-                  </div>
-                )}
-              </div>
+                      )}
+                    </>
+                  ) : (
+                    <div
+                      style={{
+                        padding: 16,
+                        textAlign: 'center',
+                        color: 'var(--text-muted)',
+                        fontSize: 12,
+                      }}
+                    >
+                      <p>No match for &quot;{searchQuery}&quot;</p>
+                      <p style={{ fontSize: 10, marginTop: 4 }}>
+                        Try &quot;Verstappen&quot;, &quot;Norris&quot;, &quot;Ferrari&quot;, or &quot;Monaco&quot;
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Mobile search button */}
+            <button
+              onClick={toggleMobileSearch}
+              className="md:hidden cursor-pointer transition-colors"
+              style={{
+                padding: '7px',
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--border-dim)',
+                borderRadius: 'var(--r-sm)',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              title="Search"
+              aria-label="Toggle search input"
+            >
+              <Search style={{ width: 14, height: 14 }} />
+            </button>
+
+            {/* Glance mode */}
+            {onToggleGlance && (
+              <button
+                onClick={onToggleGlance}
+                className="flex items-center gap-1.5 cursor-pointer transition-colors"
+                style={{
+                  padding: '6px 12px',
+                  background: 'rgba(245,184,0,0.08)',
+                  border: '1px solid rgba(245,184,0,0.25)',
+                  borderRadius: 'var(--r-sm)',
+                  color: '#F5B800',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: '0.10em',
+                  textTransform: 'uppercase',
+                }}
+                title="Distraction-free Glance Mode"
+              >
+                <Zap style={{ width: 13, height: 13 }} />
+                <span className="hidden sm:inline">Glance</span>
+              </button>
             )}
+
+            {/* Livery / Personalization */}
+            {onOpenPersonalization && (
+              <button
+                onClick={onOpenPersonalization}
+                className="flex items-center gap-1.5 cursor-pointer transition-colors"
+                style={{
+                  padding: '6px 12px',
+                  background: 'var(--bg-raised)',
+                  border: '1px solid var(--border-dim)',
+                  borderRadius: 'var(--r-sm)',
+                  color: 'var(--text-secondary)',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: '0.10em',
+                  textTransform: 'uppercase',
+                }}
+                title="Personalize livery &amp; allegiance"
+              >
+                <Palette style={{ width: 13, height: 13, color: 'var(--red)' }} />
+                <span className="hidden sm:inline">Livery</span>
+              </button>
+            )}
+
+            {/* Theme toggle */}
+            <button
+              onClick={onToggleTheme}
+              className="cursor-pointer transition-colors flex items-center justify-center"
+              style={{
+                padding: '7px',
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--border-dim)',
+                borderRadius: 'var(--r-sm)',
+                color: 'var(--text-secondary)',
+              }}
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle Theme"
+            >
+              {isDarkMode ? (
+                <Sun style={{ width: 14, height: 14, color: '#F5B800' }} />
+              ) : (
+                <Moon style={{ width: 14, height: 14, color: '#6B6B78' }} />
+              )}
+            </button>
           </div>
-
-          {/* Mobile Search Button */}
-          <button
-            onClick={toggleMobileSearch}
-            className="md:hidden p-2 rounded border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
-            title="Search"
-            aria-label="Toggle search input"
-          >
-            <Search className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Glance Mode Zen Toggle Button */}
-          {onToggleGlance && (
-            <button
-              onClick={onToggleGlance}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-hud font-bold uppercase tracking-wider"
-              title="Open distraction-free Glance Mode"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Glance</span>
-            </button>
-          )}
-
-          {/* Personalization / Livery Selector */}
-          {onOpenPersonalization && (
-            <button
-              onClick={onOpenPersonalization}
-              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-hud font-bold uppercase tracking-wider"
-              title="Personalize driver, team allegiance & livery theme"
-            >
-              <Palette className="w-3.5 h-3.5 text-[var(--accent-f1-red)]" />
-              <span className="hidden sm:inline">Livery</span>
-            </button>
-          )}
-
-          {/* Dark / Light Mode Toggle */}
-          <button
-            onClick={onToggleTheme}
-            className="p-1.5 sm:p-2 rounded border border-[var(--border-subtle)] bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-            title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-            aria-label="Toggle Theme"
-          >
-            {isDarkMode ? <Sun className="w-3.5 h-3.5 text-amber-400" /> : <Moon className="w-3.5 h-3.5 text-zinc-600" />}
-          </button>
         </div>
       </div>
 
-      {/* Mobile Search Drawer (collapsible under main bar) */}
+      {/* ── Mobile search drawer ─────────────────── */}
       {isMobileSearchOpen && (
-        <div className="md:hidden border-t border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-3 space-y-2">
+        <div
+          className="md:hidden border-b animate-fade-in"
+          style={{
+            background: 'var(--bg-raised)',
+            borderColor: 'var(--border-dim)',
+            padding: '10px 12px',
+          }}
+        >
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-muted)]" />
+            <Search
+              className="absolute pointer-events-none"
+              style={{
+                left: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 13,
+                height: 13,
+                color: 'var(--text-muted)',
+              }}
+            />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search driver, team, circuit..."
               autoFocus
-              className="w-full bg-[var(--bg-primary)] border border-[var(--border-subtle)] rounded pl-8 pr-7 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none font-hud"
+              style={{
+                width: '100%',
+                background: 'var(--bg-overlay)',
+                border: '1px solid var(--border-mid)',
+                borderRadius: 'var(--r-sm)',
+                padding: '9px 28px 9px 32px',
+                fontSize: 14,
+                fontFamily: 'var(--font-body)',
+                color: 'var(--text-primary)',
+                outline: 'none',
+              }}
             />
             {searchQuery && (
               <button
                 onClick={() => onSearchChange('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+                className="absolute cursor-pointer"
+                style={{
+                  right: 10,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                  background: 'none',
+                  border: 'none',
+                }}
               >
-                <X className="w-3 h-3" />
+                <X style={{ width: 12, height: 12 }} />
               </button>
             )}
           </div>
 
-          {/* Mobile Results */}
           {cleanQuery && hasResults && (
-            <div className="max-h-60 overflow-y-auto divide-y divide-[var(--border-subtle)] border border-[var(--border-subtle)] rounded bg-[var(--bg-primary)]">
+            <div
+              className="max-h-60 overflow-y-auto divide-y mt-2"
+              style={{
+                border: '1px solid var(--border-dim)',
+                borderRadius: 'var(--r-sm)',
+                background: 'var(--bg-overlay)',
+                borderColor: 'var(--border-dim)',
+              }}
+            >
               {matchingDrivers.map((standing) => (
                 <button
                   key={standing.Driver.driverId}
                   onClick={() => handleSelectDriverMatch(standing.Driver.driverId)}
-                  className="w-full text-left p-2 hover:bg-[var(--bg-tertiary)] flex items-center justify-between text-xs"
+                  className="w-full flex items-center justify-between cursor-pointer"
+                  style={{
+                    padding: '10px 12px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    textAlign: 'left',
+                  }}
                 >
-                  <span className="font-hud font-bold uppercase text-[var(--text-primary)]">
+                  <span>
                     {standing.Driver.givenName} {standing.Driver.familyName}
                   </span>
-                  <span className="text-[10px] text-[var(--text-muted)] uppercase">Profile →</span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Profile →
+                  </span>
                 </button>
               ))}
               {matchingRaces.map((r) => (
                 <button
                   key={r.round}
                   onClick={() => handleSelectRaceMatch(r.round)}
-                  className="w-full text-left p-2 hover:bg-[var(--bg-tertiary)] flex items-center justify-between text-xs"
+                  className="w-full flex items-center justify-between cursor-pointer"
+                  style={{
+                    padding: '10px 12px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-primary)',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    letterSpacing: '0.06em',
+                    textTransform: 'uppercase',
+                    textAlign: 'left',
+                  }}
                 >
-                  <span className="font-hud font-bold uppercase text-[var(--text-primary)]">
-                    R{r.round} • {r.raceName}
+                  <span>
+                    R{r.round} &bull; {r.raceName}
                   </span>
-                  <span className="text-[10px] text-[var(--text-muted)]">Results →</span>
+                  <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>Results →</span>
                 </button>
               ))}
             </div>

@@ -1,109 +1,234 @@
 @import "tailwindcss";
 
-/* 
-  SIGNAL AESTHETIC — MINIMAL, PRECISE, UNMISTAKABLY F1
-  Base palette: Desaturated, restrained "Paddock Neutral"
-  Structure: Single neutral grey hairline borders, whitespace separation
-  Signal Red: #E10600 reserved strictly for live/urgent/P1 states
+/*
+  APEX TIMING HUD — CARBON DARK DESIGN SYSTEM
+  ============================================
+  Theme: Race weekend energy. Carbon-fibre darkness, timing-screen precision,
+         big numerals, team-colour glow. Bold and confident, never cluttered.
+  Fonts: Barlow Condensed (display/heads), Space Grotesk (body), JetBrains Mono (data)
 */
 
+/* ─────────────────────────────────────────────
+   DESIGN TOKENS
+   ───────────────────────────────────────────── */
 :root {
-  /* Dark Mode Default (Graphite #121214) */
-  --bg-primary: #121214;
-  --bg-secondary: #18181B;
-  --bg-tertiary: #202024;
-  --bg-card: #18181B;
-  --border-subtle: #2A2A2D;
-  --border-hover: #3F3F46;
-  --text-primary: #EDEDED;
-  --text-secondary: #A1A1AA;
-  --text-muted: #71717A;
+  /* Base surfaces — carbon-black stack */
+  --bg-base:        #0B0B0E;   /* carbon black */
+  --bg-raised:      #111115;   /* cards / panels */
+  --bg-overlay:     #18181D;   /* modals, dropdowns */
+  --bg-highlight:   #1E1E25;   /* hover surface */
 
-  /* Structural Signal Red (Reserved strictly for live/P1/accents) */
-  --accent-f1-red: #E10600;
-  --accent-f1-red-muted: rgba(225, 6, 0, 0.12);
+  /* Borders */
+  --border-dim:     rgba(255,255,255,0.07);
+  --border-mid:     rgba(255,255,255,0.13);
+  --border-bright:  rgba(255,255,255,0.22);
 
-  /* Data Signal Colors */
-  --signal-green: #10B981;
-  --signal-amber: #F59E0B;
-  --signal-purple: #A855F7;
-  --signal-neutral: #71717A;
+  /* Text */
+  --text-primary:   #F4F4F1;   /* off-white */
+  --text-secondary: #9898A0;
+  --text-muted:     #56565F;
+  --text-inverse:   #0B0B0E;
 
-  /* Rail state */
-  --rail-color: #2A2A2D;
-  --rail-live-color: #E10600;
+  /* Brand accent */
+  --red:            #E10600;
+  --red-glow:       rgba(225,6,0,0.35);
+  --red-subtle:     rgba(225,6,0,0.10);
+
+  /* Data signals */
+  --green:          #10E070;
+  --green-subtle:   rgba(16,224,112,0.12);
+  --amber:          #F5B800;
+  --amber-subtle:   rgba(245,184,0,0.12);
+  --purple:         #9B5FFA;
+  --purple-subtle:  rgba(155,95,250,0.12);
+  --blue:           #3B9BFA;
+  --blue-subtle:    rgba(59,155,250,0.12);
+
+  /* Tyre compounds (FIA official) */
+  --tyre-soft:         #E8002D;
+  --tyre-medium:       #FFF200;
+  --tyre-medium-text:  #111;
+  --tyre-hard:         #FFFFFF;
+  --tyre-hard-text:    #111;
+  --tyre-inter:        #39B54A;
+  --tyre-wet:          #0072CE;
+
+  /* Timing tower rail */
+  --rail:           rgba(255,255,255,0.10);
+  --rail-live:      var(--red);
+
+  /* Team colour slot (overridden per-card with inline style) */
+  --team:           #E10600;
+
+  /* Typography */
+  --font-display:   var(--font-display, 'Barlow Condensed', ui-sans-serif, sans-serif);
+  --font-body:      var(--font-body, 'Space Grotesk', ui-sans-serif, sans-serif);
+  --font-mono:      var(--font-mono, 'JetBrains Mono', ui-monospace, monospace);
+
+  /* Spacing scale (8-pt grid) */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10:40px;
+  --space-12:48px;
+  --space-16:64px;
+
+  /* Radius */
+  --r-sm:   3px;
+  --r-md:   6px;
+  --r-lg:  12px;
+  --r-pill:9999px;
+
+  /* Elevation shadows */
+  --shadow-card:   0 1px 3px rgba(0,0,0,0.6), 0 0 0 1px var(--border-dim);
+  --shadow-modal:  0 24px 64px rgba(0,0,0,0.8), 0 0 0 1px var(--border-mid);
+  --shadow-glow:   0 0 24px var(--red-glow);
+  --shadow-team:   0 0 20px rgba(var(--team-r,225),var(--team-g,6),var(--team-b,0),0.30);
+
+  /* Motion */
+  --ease-snap:    cubic-bezier(0.16,1,0.3,1);
+  --ease-out:     cubic-bezier(0.0,0.0,0.2,1);
+  --dur-fast:     120ms;
+  --dur-mid:      220ms;
+  --dur-slow:     400ms;
+
+  /* Legacy aliases (keeps existing components working) */
+  --bg-primary:     var(--bg-base);
+  --bg-secondary:   var(--bg-raised);
+  --bg-tertiary:    var(--bg-overlay);
+  --bg-card:        var(--bg-raised);
+  --border-subtle:  var(--border-dim);
+  --border-hover:   var(--border-mid);
+  --accent-f1-red:  var(--red);
+  --accent-f1-red-muted: var(--red-subtle);
+  --signal-green:   var(--green);
+  --signal-amber:   var(--amber);
+  --signal-purple:  var(--purple);
+  --signal-neutral: var(--text-muted);
+  --rail-color:     var(--rail);
+  --rail-live-color:var(--rail-live);
 }
 
+/* Light mode overrides (used when .light class is on <html>) */
 .light {
-  /* Light Mode (Warm off-white #FAFAF8) */
-  --bg-primary: #FAFAF8;
-  --bg-secondary: #F2F2EE;
-  --bg-tertiary: #EAEAE6;
-  --bg-card: #F2F2EE;
-  --border-subtle: #E4E4E0;
-  --border-hover: #D4D4D0;
-  --text-primary: #1C1C1E;
-  --text-secondary: #52525B;
-  --text-muted: #71717A;
+  --bg-base:       #FAFAF8;
+  --bg-raised:     #F0F0EC;
+  --bg-overlay:    #E8E8E4;
+  --bg-highlight:  #DDDDD8;
+  --border-dim:    rgba(0,0,0,0.07);
+  --border-mid:    rgba(0,0,0,0.13);
+  --border-bright: rgba(0,0,0,0.22);
+  --text-primary:  #111115;
+  --text-secondary:#52525A;
+  --text-muted:    #8A8A92;
+  --text-inverse:  #F4F4F1;
+  --red-glow:      rgba(225,6,0,0.20);
+  --rail:          rgba(0,0,0,0.12);
 
-  --accent-f1-red: #E10600;
-  --accent-f1-red-muted: rgba(225, 6, 0, 0.08);
+  /* Legacy */
+  --bg-primary:    var(--bg-base);
+  --bg-secondary:  var(--bg-raised);
+  --bg-tertiary:   var(--bg-overlay);
+  --bg-card:       var(--bg-raised);
+  --border-subtle: var(--border-dim);
+  --border-hover:  var(--border-mid);
+}
 
-  --signal-green: #059669;
-  --signal-amber: #D97706;
-  --signal-purple: #9333EA;
-  --signal-neutral: #A1A1AA;
-
-  --rail-color: #E4E4E0;
-  --rail-color: #E4E4E0;
-  --rail-live-color: #E10600;
+/* ─────────────────────────────────────────────
+   BASE RESET & BODY
+   ───────────────────────────────────────────── */
+html, body {
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 body {
-  background-color: var(--bg-primary);
+  background-color: var(--bg-base);
   color: var(--text-primary);
-  font-family: var(--font-body, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
-  overflow-x: hidden;
-  min-height: 100vh;
-  transition: background-color 150ms ease, color 150ms ease;
-  line-height: 1.5;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color var(--dur-mid) var(--ease-out),
+              color var(--dur-mid) var(--ease-out);
 }
 
-/* Typography — Variable, tabular numbers for all telemetry/timing */
-.font-hud {
-  font-family: var(--font-hud, 'Rajdhani', -apple-system, sans-serif);
-  letter-spacing: 0.04em;
+/* ─────────────────────────────────────────────
+   TYPOGRAPHY UTILITIES
+   ───────────────────────────────────────────── */
+
+/* Display face — Barlow Condensed for big heads and numerals */
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+  line-height: 0.95;
 }
 
+/* Body face — Space Grotesk */
+.font-body {
+  font-family: var(--font-body);
+}
+
+/* Monospace data — JetBrains Mono */
+.font-mono,
 .font-mono-num {
+  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
-/* Timing Screen Hairline Grid & Panels (Flat, no card soup, no blur elevation) */
-.timing-panel {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  border-radius: 2px;
+/* Legacy alias — keeps old .font-hud references styled */
+.font-hud {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  font-weight: 700;
 }
 
-.timing-row {
-  border-bottom: 1px solid var(--border-subtle);
-  transition: background-color 120ms ease;
+/* ─────────────────────────────────────────────
+   KERB-STRIPE DIVIDER  (Red / White / Red)
+   ───────────────────────────────────────────── */
+.kerb-stripe {
+  height: 3px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--red)   0px,
+    var(--red)   12px,
+    #ffffff       12px,
+    #ffffff       24px
+  );
+  opacity: 0.80;
 }
 
-.timing-row:hover {
-  background-color: var(--bg-tertiary);
+.kerb-stripe-v {
+  width: 3px;
+  background: repeating-linear-gradient(
+    180deg,
+    var(--red)   0px,
+    var(--red)   10px,
+    #ffffff       10px,
+    #ffffff       20px
+  );
+  opacity: 0.80;
 }
 
-.flat-surface {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  box-shadow: none !important;
+/* ─────────────────────────────────────────────
+   CARBON-WEAVE TEXTURE  (subtle SVG bg)
+   ───────────────────────────────────────────── */
+.carbon-weave {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8'%3E%3Crect width='4' height='4' fill='rgba(255,255,255,0.018)'/%3E%3Crect x='4' y='4' width='4' height='4' fill='rgba(255,255,255,0.018)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
 }
 
-/* Signature Layout Motif: Left-hand Vertical Timing Tower Rail */
+/* ─────────────────────────────────────────────
+   TIMING TOWER RAIL  (left-hand vertical accent)
+   ───────────────────────────────────────────── */
 .timing-tower-rail {
   position: relative;
   padding-left: 14px;
@@ -116,104 +241,266 @@ body {
   top: 0;
   bottom: 0;
   width: 2px;
-  background-color: var(--rail-color);
-  transition: background-color 200ms ease;
+  background-color: var(--rail);
+  transition: background-color var(--dur-mid) var(--ease-out);
 }
 
 .timing-tower-rail.is-live::before {
-  background-color: var(--rail-live-color);
+  background-color: var(--rail-live);
+  box-shadow: 0 0 6px var(--red-glow);
 }
 
-/* Subtle Hairline Dividers */
-.hairline-b {
-  border-bottom: 1px solid var(--border-subtle);
+/* ─────────────────────────────────────────────
+   TEAM-COLOUR GLOW BORDER  (set --team on parent)
+   ───────────────────────────────────────────── */
+.team-border {
+  border-left: 3px solid var(--team);
 }
 
-.hairline-t {
-  border-top: 1px solid var(--border-subtle);
+.team-glow {
+  box-shadow: 0 0 18px rgba(var(--team-r,225),var(--team-g,6),var(--team-b,0),0.25),
+              inset 0 0 0 1px rgba(var(--team-r,225),var(--team-g,6),var(--team-b,0),0.12);
 }
 
-.hairline-r {
-  border-right: 1px solid var(--border-subtle);
+/* ─────────────────────────────────────────────
+   CARD / PANEL PRIMITIVES
+   ───────────────────────────────────────────── */
+.apex-card {
+  background-color: var(--bg-raised);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-card);
+  transition: border-color var(--dur-fast) var(--ease-out),
+              box-shadow var(--dur-fast) var(--ease-out);
 }
 
-.hairline-l {
-  border-left: 1px solid var(--border-subtle);
+.apex-card:hover {
+  border-color: var(--border-mid);
 }
 
-/* Tyre Compound Badges — Crisp, Official FIA Compound Colors */
-.compound-soft {
-  background: #E8002D;
-  color: #FFFFFF;
-}
-.compound-medium {
-  background: #FFF200;
-  color: #121214;
-}
-.compound-hard {
-  background: #FFFFFF;
-  color: #121214;
-}
-.compound-intermediate {
-  background: #39B54A;
-  color: #FFFFFF;
-}
-.compound-wet {
-  background: #0072CE;
-  color: #FFFFFF;
+.timing-panel {
+  background-color: var(--bg-raised);
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r-sm);
 }
 
-/* Custom Clean Scrollbars */
-::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+.timing-row {
+  border-bottom: 1px solid var(--border-dim);
+  transition: background-color var(--dur-fast) var(--ease-out);
 }
 
-::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+.timing-row:last-child {
+  border-bottom: none;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border-subtle);
-  border-radius: 2px;
+.timing-row:hover {
+  background-color: var(--bg-highlight);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--border-hover);
+.flat-surface {
+  background-color: var(--bg-raised);
+  border: 1px solid var(--border-dim);
 }
 
-/* Motion — Purposeful, crisp. Slow subtle pulse reserved ONLY for live status */
+/* ─────────────────────────────────────────────
+   GHOST DRIVER NUMBER  (behind driver cards)
+   ───────────────────────────────────────────── */
+.ghost-number {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: italic;
+  font-size: clamp(5rem, 15vw, 11rem);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255,255,255,0.06);
+  user-select: none;
+  pointer-events: none;
+  position: absolute;
+  right: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+}
+
+/* ─────────────────────────────────────────────
+   POSITION BADGE  (P1, P2 … )
+   ───────────────────────────────────────────── */
+.pos-badge {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+.pos-badge-p1 {
+  color: #F5B800;
+  text-shadow: 0 0 20px rgba(245,184,0,0.5);
+}
+
+.pos-badge-p2 {
+  color: #C0C0C0;
+  text-shadow: 0 0 16px rgba(192,192,192,0.4);
+}
+
+.pos-badge-p3 {
+  color: #CD7F32;
+  text-shadow: 0 0 16px rgba(205,127,50,0.4);
+}
+
+/* ─────────────────────────────────────────────
+   CHECKERED FLAG ACCENT  (for P1 / winner moments)
+   ───────────────────────────────────────────── */
+.checkered-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Crect width='5' height='5' fill='rgba(255,255,255,0.06)'/%3E%3Crect x='5' y='5' width='5' height='5' fill='rgba(255,255,255,0.06)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* ─────────────────────────────────────────────
+   TYRE COMPOUND BADGES
+   ───────────────────────────────────────────── */
+.compound-soft         { background: var(--tyre-soft);   color: #fff; }
+.compound-medium       { background: var(--tyre-medium); color: var(--tyre-medium-text); }
+.compound-hard         { background: var(--tyre-hard);   color: var(--tyre-hard-text); }
+.compound-intermediate { background: var(--tyre-inter);  color: #fff; }
+.compound-wet          { background: var(--tyre-wet);    color: #fff; }
+
+/* ─────────────────────────────────────────────
+   HAIRLINES
+   ───────────────────────────────────────────── */
+.hairline-b { border-bottom: 1px solid var(--border-dim); }
+.hairline-t { border-top:    1px solid var(--border-dim); }
+.hairline-r { border-right:  1px solid var(--border-dim); }
+.hairline-l { border-left:   1px solid var(--border-dim); }
+
+/* ─────────────────────────────────────────────
+   BUTTONS
+   ───────────────────────────────────────────── */
+.btn-red {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 16px;
+  height: 36px;
+  background: var(--red);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: opacity var(--dur-fast), transform var(--dur-fast);
+}
+
+.btn-red:hover  { opacity: 0.88; }
+.btn-red:active { transform: scale(0.97); }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 34px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid var(--border-dim);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: color var(--dur-fast), border-color var(--dur-fast), background var(--dur-fast);
+}
+
+.btn-ghost:hover {
+  color: var(--text-primary);
+  border-color: var(--border-mid);
+  background: var(--bg-highlight);
+}
+
+/* ─────────────────────────────────────────────
+   SCROLLBAR
+   ───────────────────────────────────────────── */
+::-webkit-scrollbar          { width: 4px; height: 4px; }
+::-webkit-scrollbar-track    { background: transparent; }
+::-webkit-scrollbar-thumb    { background: var(--border-mid); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-bright); }
+
+/* ─────────────────────────────────────────────
+   ANIMATIONS
+   ───────────────────────────────────────────── */
 @keyframes livePulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.4;
-    transform: scale(0.95);
-  }
-}
-
-.animate-live-pulse {
-  animation: livePulse 2s ease-in-out infinite;
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.85); }
 }
 
 @keyframes tickerMove {
-  0% { transform: translateX(0); }
+  0%   { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Utility classes */
+.animate-live-pulse {
+  animation: livePulse 2s ease-in-out infinite;
 }
 
 .animate-ticker {
   display: inline-flex;
   white-space: nowrap;
-  animation: tickerMove 40s linear infinite;
+  animation: tickerMove 50s linear infinite;
 }
 
-.animate-ticker:hover {
-  animation-play-state: paused;
+.animate-ticker:hover { animation-play-state: paused; }
+
+.animate-fade-in   { animation: fadeIn  var(--dur-mid) var(--ease-snap) both; }
+.animate-slide-up  { animation: slideUp var(--dur-slow) var(--ease-snap) both; }
+.animate-scale-in  { animation: scaleIn var(--dur-mid) var(--ease-snap) both; }
+.animate-fadeIn    { animation: fadeIn  var(--dur-mid) var(--ease-snap) both; } /* legacy alias */
+
+/* Skeleton loader shimmer */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-raised)    0%,
+    var(--bg-highlight) 50%,
+    var(--bg-raised)    100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: var(--r-sm);
 }
 
-/* Accessibility: Respect Reduced Motion */
+/* ─────────────────────────────────────────────
+   REDUCED MOTION
+   ───────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
@@ -223,48 +510,24 @@ body {
   }
 }
 
-/* Mobile & PWA Grade Touch Ergonomics */
-html, body {
-  min-height: 100dvh;
-  -webkit-tap-highlight-color: transparent;
-}
-
+/* ─────────────────────────────────────────────
+   MOBILE / PWA ERGONOMICS
+   ───────────────────────────────────────────── */
 button, a, input, select, textarea, [role="button"] {
   touch-action: manipulation;
 }
 
-/* Prevent iOS Safari Automatic Zoom on Input Focus */
+/* Prevent iOS Safari auto-zoom on input focus */
 @media screen and (max-width: 768px) {
-  input, select, textarea {
-    font-size: 16px !important;
-  }
+  input, select, textarea { font-size: 16px !important; }
 }
 
-/* Safe Area Inset Helpers (iPhone Notch / Dynamic Island / Android Gesture Bar) */
-.pt-safe {
-  padding-top: env(safe-area-inset-top, 0px);
-}
+/* Safe area inset helpers */
+.pt-safe { padding-top:    env(safe-area-inset-top,    0px); }
+.pb-safe { padding-bottom: max(env(safe-area-inset-bottom, 0px), 14px); }
+.pl-safe { padding-left:   env(safe-area-inset-left,   0px); }
+.pr-safe { padding-right:  env(safe-area-inset-right,  0px); }
 
-.pb-safe {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 14px);
-}
-
-.pl-safe {
-  padding-left: env(safe-area-inset-left, 0px);
-}
-
-.pr-safe {
-  padding-right: env(safe-area-inset-right, 0px);
-}
-
-/* Enforce Minimum 44px HIG / 48dp Touch Target */
-.touch-target {
-  min-height: 44px;
-  min-width: 44px;
-}
-
-.touch-scroll {
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
-}
-
+/* Touch targets — HIG 44px / Material 48dp */
+.touch-target { min-height: 44px; min-width: 44px; }
+.touch-scroll { -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }

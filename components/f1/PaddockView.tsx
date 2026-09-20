@@ -27,6 +27,60 @@ interface PaddockViewProps {
   initialSubTab?: 'h2h' | 'constructors' | 'drivers';
 }
 
+/* Stat bar row for H2H */
+function StatBar({
+  labelA,
+  labelB,
+  heading,
+  colorA,
+  colorB,
+  fracA,
+  greenA,
+  greenB,
+}: {
+  labelA: string;
+  labelB: string;
+  heading: string;
+  colorA: string;
+  colorB: string;
+  fracA: number;
+  greenA?: boolean;
+  greenB?: boolean;
+}) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          marginBottom: 6,
+          fontFamily: 'var(--font-display)',
+          fontWeight: 700,
+          fontSize: 11,
+          letterSpacing: '0.10em',
+          textTransform: 'uppercase',
+        }}
+      >
+        <span style={{ color: greenA ? 'var(--green)' : 'var(--text-secondary)' }}>{labelA}</span>
+        <span style={{ color: 'var(--text-muted)' }}>{heading}</span>
+        <span style={{ color: greenB ? 'var(--green)' : 'var(--text-secondary)' }}>{labelB}</span>
+      </div>
+      <div
+        style={{
+          height: 6,
+          borderRadius: 99,
+          overflow: 'hidden',
+          background: 'var(--bg-base)',
+          display: 'flex',
+        }}
+      >
+        <div style={{ width: `${fracA * 100}%`, background: colorA, transition: 'width 500ms var(--ease-snap)' }} />
+        <div style={{ flex: 1, background: colorB, transition: 'width 500ms var(--ease-snap)' }} />
+      </div>
+    </div>
+  );
+}
+
 export default function PaddockView({
   driverStandings,
   constructorStandings,
@@ -37,7 +91,6 @@ export default function PaddockView({
 }: PaddockViewProps) {
   const [subTab, setSubTab] = useState<'h2h' | 'constructors' | 'drivers'>(initialSubTab);
 
-  // Head to Head Driver selection
   const [driverAId, setDriverAId] = useState<string>(
     driverStandings[0]?.Driver.driverId || 'max_verstappen'
   );
@@ -57,18 +110,11 @@ export default function PaddockView({
 
   const metaA = getDriverDetails(standingA?.Driver.driverId || '') || {
     number: standingA?.Driver.permanentNumber ? parseInt(standingA.Driver.permanentNumber, 10) : 3,
-    code: standingA?.Driver.code || 'VER',
-    countryFlag: '🇳🇱',
-    worldTitles: 4,
-    bio: 'Formula 1 elite champion.',
+    code: standingA?.Driver.code || 'VER', countryFlag: '', worldTitles: 4, bio: '',
   };
-
   const metaB = getDriverDetails(standingB?.Driver.driverId || '') || {
     number: standingB?.Driver.permanentNumber ? parseInt(standingB.Driver.permanentNumber, 10) : 1,
-    code: standingB?.Driver.code || 'NOR',
-    countryFlag: '🇬🇧',
-    worldTitles: 1,
-    bio: 'Formula 1 World Champion with blistering pace.',
+    code: standingB?.Driver.code || 'NOR', countryFlag: '', worldTitles: 1, bio: '',
   };
 
   const ptsA = parseFloat(standingA?.points || '0');
@@ -78,414 +124,660 @@ export default function PaddockView({
   const posA = parseInt(standingA?.position || '1', 10);
   const posB = parseInt(standingB?.position || '2', 10);
 
+  const subTabs = [
+    { id: 'drivers' as const,      label: 'Driver Grid',   icon: Award  },
+    { id: 'constructors' as const, label: 'Constructors',  icon: Shield },
+    { id: 'h2h' as const,          label: 'Head to Head',  icon: Swords },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Header & Mode Switcher */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* ── Header ─────────────────────────────── */}
+      <div
+        style={{
+          background: 'var(--bg-raised)',
+          border: '1px solid var(--border-dim)',
+          borderRadius: 'var(--r-lg)',
+          padding: '16px 20px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
         <div>
-          <h2 className="text-xl sm:text-2xl font-black font-hud tracking-tight uppercase flex items-center gap-2 text-[var(--text-primary)]">
-            <Users className="w-5 h-5 text-[var(--accent-f1-red)]" />
-            F1 Paddock & Drivers
+          <h2
+            style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 900,
+              fontSize: 'clamp(20px, 3.5vw, 28px)',
+              textTransform: 'uppercase',
+              letterSpacing: '-0.01em',
+              lineHeight: 1,
+              color: 'var(--text-primary)',
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+            }}
+          >
+            <Users style={{ width: 20, height: 20, color: 'var(--red)', flexShrink: 0 }} />
+            F1 Paddock &amp; Drivers
           </h2>
-          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+          <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-body)' }}>
             Compare drivers side-by-side, inspect constructors, and view the driver grid.
           </p>
         </div>
 
-        <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-xl border border-[var(--border-subtle)] text-xs font-hud font-bold uppercase">
-          <button
-            onClick={() => setSubTab('h2h')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              subTab === 'h2h'
-                ? 'bg-[var(--accent-f1-red)] text-white shadow-md shadow-red-950/40'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            <Swords className="w-3.5 h-3.5" />
-            <span>Head to Head</span>
-          </button>
-          <button
-            onClick={() => setSubTab('constructors')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              subTab === 'constructors'
-                ? 'bg-[var(--accent-f1-red)] text-white shadow-md shadow-red-950/40'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5" />
-            <span>Constructors</span>
-          </button>
-          <button
-            onClick={() => setSubTab('drivers')}
-            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
-              subTab === 'drivers'
-                ? 'bg-[var(--accent-f1-red)] text-white shadow-md shadow-red-950/40'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            <Award className="w-3.5 h-3.5" />
-            <span>Driver Grid</span>
-          </button>
+        {/* Tab switcher */}
+        <div
+          style={{
+            display: 'flex',
+            background: 'var(--bg-overlay)',
+            border: '1px solid var(--border-dim)',
+            borderRadius: 'var(--r-md)',
+            padding: 4,
+            gap: 4,
+          }}
+        >
+          {subTabs.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setSubTab(t.id)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px',
+                  borderRadius: 'var(--r-sm)',
+                  background: subTab === t.id ? 'var(--red)' : 'transparent',
+                  color: subTab === t.id ? '#fff' : 'var(--text-secondary)',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: '0.10em',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background 150ms, color 150ms',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <Icon style={{ width: 13, height: 13, flexShrink: 0 }} />
+                <span className="hidden sm:inline">{t.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* HEAD TO HEAD COMPARATOR */}
+      {/* ════════════════════════════════════════════
+          HEAD TO HEAD
+      ════════════════════════════════════════════ */}
       {subTab === 'h2h' && (
-        <div className="space-y-6">
-          {/* Driver Selectors */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-              <label className="block text-xs font-hud font-bold text-[var(--text-muted)] uppercase mb-2">
-                Driver A (Select)
-              </label>
-              <select
-                value={driverAId}
-                onChange={(e) => setDriverAId(e.target.value)}
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-lg p-2.5 text-sm font-hud font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-f1-red)]"
-              >
-                {driverStandings.map((s) => (
-                  <option key={s.Driver.driverId} value={s.Driver.driverId} className="bg-[var(--bg-secondary)]">
-                    P{s.position} • {s.Driver.givenName} {s.Driver.familyName} ({s.Constructors[0]?.name})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-              <label className="block text-xs font-hud font-bold text-[var(--text-muted)] uppercase mb-2">
-                Driver B (Select)
-              </label>
-              <select
-                value={driverBId}
-                onChange={(e) => setDriverBId(e.target.value)}
-                className="w-full bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] rounded-lg p-2.5 text-sm font-hud font-bold text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-f1-red)]"
-              >
-                {driverStandings.map((s) => (
-                  <option key={s.Driver.driverId} value={s.Driver.driverId} className="bg-[var(--bg-secondary)]">
-                    P{s.position} • {s.Driver.givenName} {s.Driver.familyName} ({s.Constructors[0]?.name})
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Versus Visual Arena */}
-          <div className="relative rounded-sm border border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-6 sm:p-8 timing-tower-rail is-live">
-            {/* Center VS Emblem */}
-            <div className="absolute left-1/2 top-8 -translate-x-1/2 z-20 hidden sm:flex items-center justify-center px-3 py-1 rounded-sm bg-[var(--bg-primary)] border border-[var(--border-subtle)] text-xs font-hud font-black text-amber-400">
-              DRIVER COMPARISON
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative z-10">
-              {/* Driver A Card */}
-              <div className="space-y-4 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-start gap-3">
-                  <div
-                    className="w-12 h-12 rounded-sm flex items-center justify-center font-hud font-black text-2xl font-mono-num border"
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Selectors */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {(['A', 'B'] as const).map((side) => {
+              const curId = side === 'A' ? driverAId : driverBId;
+              const setter = side === 'A' ? setDriverAId : setDriverBId;
+              const teamColor = side === 'A' ? teamA.color : teamB.color;
+              return (
+                <div
+                  key={side}
+                  style={{
+                    background: 'var(--bg-raised)',
+                    border: `1px solid ${teamColor}40`,
+                    borderRadius: 'var(--r-md)',
+                    padding: '12px 16px',
+                  }}
+                >
+                  <label
                     style={{
-                      borderColor: teamA.color,
-                      color: teamA.color,
-                      backgroundColor: `${teamA.color}15`,
+                      display: 'block',
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
+                      fontSize: 10,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-muted)',
+                      marginBottom: 8,
                     }}
                   >
-                    #{metaA.number}
-                  </div>
-                  <div>
-                    <div className="text-xs font-hud font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 justify-center sm:justify-start">
-                      <span>[{getIsoNationalityCode(standingA?.Driver.nationality)}]</span>
-                      <span>{standingA?.Driver.nationality}</span>
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-hud font-black uppercase text-[var(--text-primary)] leading-tight">
-                      {standingA?.Driver.givenName}{' '}
-                      <span style={{ color: teamA.color }}>{standingA?.Driver.familyName}</span>
-                    </h3>
-                  </div>
+                    Driver {side}
+                  </label>
+                  <select
+                    value={curId}
+                    onChange={(e) => setter(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: 'var(--bg-overlay)',
+                      border: '1px solid var(--border-dim)',
+                      borderRadius: 'var(--r-sm)',
+                      padding: '8px 10px',
+                      fontSize: 13,
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {driverStandings.map((s) => (
+                      <option key={s.Driver.driverId} value={s.Driver.driverId}>
+                        P{s.position} • {s.Driver.givenName} {s.Driver.familyName} ({s.Constructors[0]?.name})
+                      </option>
+                    ))}
+                  </select>
                 </div>
+              );
+            })}
+          </div>
 
-                <div className="inline-block px-3 py-1 rounded-sm text-xs font-hud font-semibold uppercase tracking-wider text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+          {/* VS arena */}
+          <div
+            className="timing-tower-rail is-live"
+            style={{
+              background: 'var(--bg-raised)',
+              border: '1px solid var(--border-dim)',
+              borderRadius: 'var(--r-lg)',
+              padding: 'clamp(16px, 4vw, 32px)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            {/* Ghost VS watermark */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 900,
+                fontStyle: 'italic',
+                fontSize: 'clamp(60px, 14vw, 120px)',
+                color: 'transparent',
+                WebkitTextStroke: '1px rgba(255,255,255,0.04)',
+                userSelect: 'none',
+                pointerEvents: 'none',
+                lineHeight: 1,
+                letterSpacing: '-0.04em',
+                zIndex: 0,
+              }}
+            >
+              VS
+            </div>
+
+            <div
+              style={{
+                position: 'relative',
+                zIndex: 1,
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 24,
+              }}
+            >
+              {/* Driver A */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {/* Number badge */}
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 52,
+                    height: 52,
+                    borderRadius: 'var(--r-sm)',
+                    background: `${teamA.color}18`,
+                    border: `1px solid ${teamA.color}50`,
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 900,
+                    fontSize: 22,
+                    color: teamA.color,
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  #{metaA.number}
+                </div>
+                <div>
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
+                      fontSize: 10,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-muted)',
+                      marginBottom: 4,
+                    }}
+                  >
+                    [{getIsoNationalityCode(standingA?.Driver.nationality)}] {standingA?.Driver.nationality}
+                  </div>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 900,
+                      fontSize: 'clamp(18px, 4vw, 28px)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '-0.01em',
+                      lineHeight: 0.95,
+                      color: 'var(--text-primary)',
+                      margin: 0,
+                    }}
+                  >
+                    {standingA?.Driver.givenName}{' '}
+                    <span style={{ color: teamA.color }}>{standingA?.Driver.familyName}</span>
+                  </h3>
+                </div>
+                <div
+                  style={{
+                    display: 'inline-block',
+                    padding: '3px 10px',
+                    background: 'var(--bg-overlay)',
+                    border: '1px solid var(--border-dim)',
+                    borderRadius: 'var(--r-sm)',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: 11,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
                   {teamA.fullName}
                 </div>
-
-                <p className="text-xs text-[var(--text-secondary)] italic">{metaA.bio}</p>
-
+                {metaA.bio && (
+                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', fontFamily: 'var(--font-body)', margin: 0 }}>
+                    {metaA.bio}
+                  </p>
+                )}
                 {standingA?.Driver && (
                   <button
                     onClick={() => onSelectDriver && onSelectDriver(standingA.Driver.driverId)}
-                    className="mt-3 px-3.5 py-1.5 rounded-sm bg-[var(--bg-tertiary)] hover:bg-[var(--accent-f1-red)] hover:text-white border border-[var(--border-subtle)] text-xs font-hud font-bold uppercase tracking-wider text-[var(--text-primary)] transition-all cursor-pointer inline-flex items-center gap-1.5"
+                    className="btn-ghost flex items-center gap-1.5 self-start"
                   >
-                    <span>VIEW DRIVER PROFILE</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    VIEW DOSSIER <ChevronRight style={{ width: 12, height: 12 }} />
                   </button>
                 )}
               </div>
 
-              {/* Driver B Card */}
-              <div className="space-y-4 text-center sm:text-right">
-                <div className="flex items-center justify-center sm:justify-end gap-3 flex-row-reverse sm:flex-row">
-                  <div>
-                    <div className="text-xs font-hud font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 justify-center sm:justify-end">
-                      <span>{standingB?.Driver.nationality}</span>
-                      <span>[{getIsoNationalityCode(standingB?.Driver.nationality)}]</span>
-                    </div>
-                    <h3 className="text-2xl sm:text-3xl font-hud font-black uppercase text-[var(--text-primary)] leading-tight">
-                      {standingB?.Driver.givenName}{' '}
-                      <span style={{ color: teamB.color }}>{standingB?.Driver.familyName}</span>
-                    </h3>
-                  </div>
+              {/* Driver B */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-end', textAlign: 'right' }}>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 52,
+                    height: 52,
+                    borderRadius: 'var(--r-sm)',
+                    background: `${teamB.color}18`,
+                    border: `1px solid ${teamB.color}50`,
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 900,
+                    fontSize: 22,
+                    color: teamB.color,
+                    fontVariantNumeric: 'tabular-nums',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  #{metaB.number}
+                </div>
+                <div>
                   <div
-                    className="w-12 h-12 rounded-sm flex items-center justify-center font-hud font-black text-2xl font-mono-num border"
                     style={{
-                      borderColor: teamB.color,
-                      color: teamB.color,
-                      backgroundColor: `${teamB.color}15`,
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
+                      fontSize: 10,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: 'var(--text-muted)',
+                      marginBottom: 4,
                     }}
                   >
-                    #{metaB.number}
+                    {standingB?.Driver.nationality} [{getIsoNationalityCode(standingB?.Driver.nationality)}]
                   </div>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 900,
+                      fontSize: 'clamp(18px, 4vw, 28px)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '-0.01em',
+                      lineHeight: 0.95,
+                      color: 'var(--text-primary)',
+                      margin: 0,
+                    }}
+                  >
+                    {standingB?.Driver.givenName}{' '}
+                    <span style={{ color: teamB.color }}>{standingB?.Driver.familyName}</span>
+                  </h3>
                 </div>
-
-                <div className="inline-block px-3 py-1 rounded-sm text-xs font-hud font-semibold uppercase tracking-wider text-[var(--text-secondary)] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]">
+                <div
+                  style={{
+                    display: 'inline-block',
+                    padding: '3px 10px',
+                    background: 'var(--bg-overlay)',
+                    border: '1px solid var(--border-dim)',
+                    borderRadius: 'var(--r-sm)',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: 11,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-secondary)',
+                  }}
+                >
                   {teamB.fullName}
                 </div>
-
-                <p className="text-xs text-[var(--text-secondary)] italic">{metaB.bio}</p>
-
+                {metaB.bio && (
+                  <p style={{ fontSize: 12, color: 'var(--text-secondary)', fontStyle: 'italic', fontFamily: 'var(--font-body)', margin: 0 }}>
+                    {metaB.bio}
+                  </p>
+                )}
                 {standingB?.Driver && (
                   <button
                     onClick={() => onSelectDriver && onSelectDriver(standingB.Driver.driverId)}
-                    className="mt-3 px-3.5 py-1.5 rounded-sm bg-[var(--bg-tertiary)] hover:bg-[var(--accent-f1-red)] hover:text-white border border-[var(--border-subtle)] text-xs font-hud font-bold uppercase tracking-wider text-[var(--text-primary)] transition-all cursor-pointer inline-flex items-center gap-1.5"
+                    className="btn-ghost flex items-center gap-1.5"
                   >
-                    <span>VIEW DRIVER PROFILE</span>
-                    <ChevronRight className="w-3.5 h-3.5" />
+                    VIEW DOSSIER <ChevronRight style={{ width: 12, height: 12 }} />
                   </button>
                 )}
               </div>
             </div>
 
-            {/* Side-by-Side Stat Bars */}
-            <div className="mt-8 pt-6 border-t border-[var(--border-subtle)] space-y-4">
-              {/* Championship Standing */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-hud font-bold uppercase text-[var(--text-muted)]">
-                  <span className={posA < posB ? 'text-emerald-400' : ''}>P{posA}</span>
-                  <span>Championship Rank</span>
-                  <span className={posB < posA ? 'text-emerald-400' : ''}>P{posB}</span>
-                </div>
-                <div className="flex h-2.5 rounded-full overflow-hidden bg-[var(--bg-primary)]">
-                  <div
-                    className="h-full transition-all duration-500"
-                    style={{
-                      width: `${(posB / (posA + posB)) * 100}%`,
-                      backgroundColor: teamA.color,
-                    }}
-                  ></div>
-                  <div
-                    className="h-full transition-all duration-500"
-                    style={{
-                      width: `${(posA / (posA + posB)) * 100}%`,
-                      backgroundColor: teamB.color,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Season Points */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-hud font-bold uppercase text-[var(--text-muted)]">
-                  <span className={ptsA >= ptsB ? 'text-emerald-400' : ''}>{ptsA} PTS</span>
-                  <span>Current Season Points</span>
-                  <span className={ptsB >= ptsA ? 'text-emerald-400' : ''}>{ptsB} PTS</span>
-                </div>
-                <div className="flex h-2.5 rounded-full overflow-hidden bg-[var(--bg-primary)]">
-                  <div
-                    className="h-full transition-all duration-500"
-                    style={{
-                      width: `${ptsA + ptsB === 0 ? 50 : (ptsA / (ptsA + ptsB)) * 100}%`,
-                      backgroundColor: teamA.color,
-                    }}
-                  ></div>
-                  <div
-                    className="h-full transition-all duration-500"
-                    style={{
-                      width: `${ptsA + ptsB === 0 ? 50 : (ptsB / (ptsA + ptsB)) * 100}%`,
-                      backgroundColor: teamB.color,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Grand Prix Wins */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-hud font-bold uppercase text-[var(--text-muted)]">
-                  <span className={winsA >= winsB ? 'text-emerald-400' : ''}>{winsA} WINS</span>
-                  <span>Season Grand Prix Victories</span>
-                  <span className={winsB >= winsA ? 'text-emerald-400' : ''}>{winsB} WINS</span>
-                </div>
-                <div className="flex h-2.5 rounded-full overflow-hidden bg-[var(--bg-primary)]">
-                  <div
-                    className="h-full transition-all duration-500"
-                    style={{
-                      width: `${winsA + winsB === 0 ? 50 : (winsA / (winsA + winsB)) * 100}%`,
-                      backgroundColor: teamA.color,
-                    }}
-                  ></div>
-                  <div
-                    className="h-full transition-all duration-500"
-                    style={{
-                      width: `${winsA + winsB === 0 ? 50 : (winsB / (winsA + winsB)) * 100}%`,
-                      backgroundColor: teamB.color,
-                    }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* World Championship Titles */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs font-hud font-bold uppercase text-[var(--text-muted)]">
-                  <span className={metaA.worldTitles >= metaB.worldTitles ? 'text-amber-400' : ''}>
-                    {metaA.worldTitles} TITLES
-                  </span>
-                  <span>Career World Championships</span>
-                  <span className={metaB.worldTitles >= metaA.worldTitles ? 'text-amber-400' : ''}>
-                    {metaB.worldTitles} TITLES
-                  </span>
-                </div>
+            {/* Stat bars */}
+            <div
+              style={{
+                marginTop: 28,
+                paddingTop: 20,
+                borderTop: '1px solid var(--border-dim)',
+                position: 'relative',
+                zIndex: 1,
+              }}
+            >
+              <StatBar
+                labelA={`P${posA}`}
+                labelB={`P${posB}`}
+                heading="Championship Rank"
+                colorA={teamA.color}
+                colorB={teamB.color}
+                fracA={posB / (posA + posB)}
+                greenA={posA < posB}
+                greenB={posB < posA}
+              />
+              <StatBar
+                labelA={`${ptsA} PTS`}
+                labelB={`${ptsB} PTS`}
+                heading="Season Points"
+                colorA={teamA.color}
+                colorB={teamB.color}
+                fracA={ptsA + ptsB === 0 ? 0.5 : ptsA / (ptsA + ptsB)}
+                greenA={ptsA >= ptsB}
+                greenB={ptsB >= ptsA}
+              />
+              <StatBar
+                labelA={`${winsA} WINS`}
+                labelB={`${winsB} WINS`}
+                heading="Season Victories"
+                colorA={teamA.color}
+                colorB={teamB.color}
+                fracA={winsA + winsB === 0 ? 0.5 : winsA / (winsA + winsB)}
+                greenA={winsA >= winsB}
+                greenB={winsB >= winsA}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  fontSize: 11,
+                  letterSpacing: '0.10em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <span style={{ color: metaA.worldTitles >= metaB.worldTitles ? 'var(--amber)' : 'var(--text-secondary)' }}>
+                  {metaA.worldTitles} TITLES
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>Career World Championships</span>
+                <span style={{ color: metaB.worldTitles >= metaA.worldTitles ? 'var(--amber)' : 'var(--text-secondary)' }}>
+                  {metaB.worldTitles} TITLES
+                </span>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* CONSTRUCTORS SHOWCASE */}
+      {/* ════════════════════════════════════════════
+          CONSTRUCTORS GRID
+      ════════════════════════════════════════════ */}
       {subTab === 'constructors' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))',
+            gap: 12,
+          }}
+        >
           {Object.entries(F1_TEAMS).map(([key, team]) => (
             <div
               key={key}
               onClick={() => onSelectConstructor && onSelectConstructor(key)}
-              className="relative rounded-lg border border-[var(--border-subtle)] bg-[var(--bg-secondary)] hover:border-[var(--accent-f1-red)]/60 hover:bg-[var(--bg-tertiary)] transition-all p-5 overflow-hidden group flex flex-col justify-between cursor-pointer select-none"
-              title={`Click to view full ${team.name} dossier`}
+              style={{
+                position: 'relative',
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--border-dim)',
+                borderRadius: 'var(--r-lg)',
+                padding: '16px',
+                overflow: 'hidden',
+                cursor: 'pointer',
+                transition: 'border-color 150ms, background 150ms',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = `${team.color}60`;
+                e.currentTarget.style.background = 'var(--bg-overlay)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border-dim)';
+                e.currentTarget.style.background = 'var(--bg-raised)';
+              }}
             >
-              {/* Top Accent Strip */}
+              {/* Top color strip */}
               <div
-                className="absolute top-0 left-0 right-0 h-1.5 transition-all group-hover:h-2"
-                style={{ backgroundColor: team.color }}
-              ></div>
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: 3,
+                  background: team.color,
+                  borderRadius: 'var(--r-lg) var(--r-lg) 0 0',
+                }}
+              />
 
-              <div className="space-y-4 pt-1">
-                {/* Header Badge & White Logo */}
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="px-2.5 py-0.5 rounded text-xs font-hud font-black uppercase tracking-wider"
-                      style={{
-                        backgroundColor: `${team.color}20`,
-                        color: team.color,
-                        border: `1px solid ${team.color}40`,
-                      }}
-                    >
-                      {team.name}
-                    </span>
-                    {team.logoImageUrl && (
-                      <img
-                        src={team.logoImageUrl}
-                        alt={team.name}
-                        className="h-4 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity"
-                        onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-                      />
-                    )}
-                  </div>
-                  <span className="text-[11px] font-mono-num font-bold text-[var(--text-muted)] bg-[var(--bg-tertiary)] px-2 py-0.5 rounded border border-[var(--border-subtle)]">
-                    {team.championships} {team.championships === 1 ? 'Title' : 'Titles'}
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, paddingTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span
+                    style={{
+                      padding: '2px 8px',
+                      borderRadius: 'var(--r-sm)',
+                      background: `${team.color}20`,
+                      border: `1px solid ${team.color}40`,
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 800,
+                      fontSize: 11,
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      color: team.color,
+                    }}
+                  >
+                    {team.name}
                   </span>
-                </div>
-
-                <div>
-                  <h3 className="text-base font-hud font-black uppercase text-[var(--text-primary)] leading-tight">
-                    {team.fullName}
-                  </h3>
-                  {team.chassis && (
-                    <span className="text-[10px] font-mono-num text-[var(--accent-f1-red)] font-bold uppercase tracking-wider">
-                      CHASSIS: {team.chassis}
-                    </span>
-                  )}
-                </div>
-
-                {/* Scraped 2D Side Profile Car Render */}
-                {team.carImageUrl && (
-                  <div className="py-2 flex items-center justify-center bg-[var(--bg-primary)]/50 rounded-lg border border-[var(--border-subtle)] group-hover:border-white/10 transition-colors">
+                  {team.logoImageUrl && (
                     <img
-                      src={team.carImageUrl}
-                      alt={`${team.name} F1 Car`}
-                      className="h-16 sm:h-20 w-auto object-contain filter drop-shadow-[0_10px_15px_rgba(0,0,0,0.6)] transform group-hover:scale-105 transition-transform duration-300"
+                      src={team.logoImageUrl}
+                      alt={team.name}
+                      style={{ height: 16, width: 'auto', objectFit: 'contain', opacity: 0.8 }}
                       onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                     />
-                  </div>
-                )}
-
-                {/* Scraped Constructor Specs Grid */}
-                <div className="grid grid-cols-2 gap-2 text-xs border-t border-[var(--border-subtle)] pt-3 text-[var(--text-secondary)]">
-                  <div className="p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60">
-                    <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold block">
-                      Power Unit
-                    </span>
-                    <span className="font-semibold text-[var(--text-primary)] truncate block">
-                      {team.powerUnit}
-                    </span>
-                  </div>
-                  <div className="p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60">
-                    <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold block">
-                      Base / HQ
-                    </span>
-                    <span className="font-medium text-[var(--text-primary)] truncate block">
-                      {team.base}
-                    </span>
-                  </div>
-                  <div className="p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60">
-                    <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold block">
-                      Team Chief
-                    </span>
-                    <span className="font-medium text-[var(--text-primary)] truncate block">
-                      {team.teamPrincipal}
-                    </span>
-                  </div>
-                  <div className="p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60">
-                    <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold block">
-                      Technical Chief
-                    </span>
-                    <span className="font-medium text-[var(--text-primary)] truncate block">
-                      {team.technicalChief || 'N/A'}
-                    </span>
-                  </div>
-                  {team.firstEntry && (
-                    <div className="col-span-2 p-2 rounded bg-[var(--bg-primary)]/40 border border-[var(--border-subtle)]/60 flex items-center justify-between">
-                      <span className="text-[9px] text-[var(--text-muted)] font-hud uppercase font-bold">
-                        First Entry
-                      </span>
-                      <span className="font-mono-num font-bold text-xs text-[var(--text-primary)]">
-                        {team.firstEntry}
-                      </span>
-                    </div>
                   )}
                 </div>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    padding: '2px 8px',
+                    background: 'var(--bg-overlay)',
+                    border: '1px solid var(--border-dim)',
+                    borderRadius: 'var(--r-sm)',
+                  }}
+                >
+                  {team.championships} {team.championships === 1 ? 'Title' : 'Titles'}
+                </span>
+              </div>
 
-                {/* Official Livery Color Palette */}
-                <div className="pt-1 flex items-center justify-between text-[10px]">
-                  <span className="font-hud uppercase text-[var(--text-muted)] font-bold">
-                    Livery Palette
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className="w-3.5 h-3.5 rounded-full border border-black/30"
-                      style={{ backgroundColor: team.color }}
-                      title={`Primary: ${team.color}`}
-                    ></span>
-                    <span
-                      className="w-3.5 h-3.5 rounded-full border border-black/30"
-                      style={{ backgroundColor: team.secondaryColor }}
-                      title={`Secondary: ${team.secondaryColor}`}
-                    ></span>
+              {/* Full name */}
+              <h3
+                style={{
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 900,
+                  fontSize: 15,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.02em',
+                  color: 'var(--text-primary)',
+                  margin: '0 0 2px',
+                  lineHeight: 1.1,
+                }}
+              >
+                {team.fullName}
+              </h3>
+              {team.chassis && (
+                <div
+                  style={{
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 10,
+                    color: 'var(--red)',
+                    fontWeight: 700,
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    marginBottom: 10,
+                  }}
+                >
+                  CHASSIS: {team.chassis}
+                </div>
+              )}
+
+              {/* Car image */}
+              {team.carImageUrl && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.25)',
+                    border: '1px solid var(--border-dim)',
+                    borderRadius: 'var(--r-sm)',
+                    padding: '12px 8px',
+                    marginBottom: 10,
+                  }}
+                >
+                  <img
+                    src={team.carImageUrl}
+                    alt={`${team.name} F1 Car`}
+                    style={{
+                      height: 64,
+                      width: 'auto',
+                      objectFit: 'contain',
+                      filter: 'drop-shadow(0 8px 16px rgba(0,0,0,0.5))',
+                      transition: 'transform 300ms var(--ease-snap)',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                  />
+                </div>
+              )}
+
+              {/* Specs grid */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 6,
+                  borderTop: '1px solid var(--border-dim)',
+                  paddingTop: 10,
+                }}
+              >
+                {[
+                  { label: 'Power Unit', value: team.powerUnit },
+                  { label: 'Base / HQ', value: team.base },
+                  { label: 'Team Chief', value: team.teamPrincipal },
+                  { label: 'Technical Chief', value: team.technicalChief || 'N/A' },
+                ].map((s) => (
+                  <div
+                    key={s.label}
+                    style={{
+                      padding: '7px 8px',
+                      background: 'rgba(0,0,0,0.20)',
+                      border: '1px solid var(--border-dim)',
+                      borderRadius: 'var(--r-sm)',
+                    }}
+                  >
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 9, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                      {s.label}
+                    </div>
+                    <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {s.value}
+                    </div>
                   </div>
+                ))}
+                {team.firstEntry && (
+                  <div
+                    style={{
+                      gridColumn: '1 / -1',
+                      padding: '6px 8px',
+                      background: 'rgba(0,0,0,0.20)',
+                      border: '1px solid var(--border-dim)',
+                      borderRadius: 'var(--r-sm)',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 9, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                      First Entry
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 12, color: 'var(--text-primary)' }}>
+                      {team.firstEntry}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Livery palette */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
+                <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 9, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                  Livery
+                </span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <span
+                    style={{ width: 14, height: 14, borderRadius: '50%', background: team.color, border: '1px solid rgba(0,0,0,0.3)', display: 'inline-block' }}
+                    title={`Primary: ${team.color}`}
+                  />
+                  <span
+                    style={{ width: 14, height: 14, borderRadius: '50%', background: team.secondaryColor, border: '1px solid rgba(0,0,0,0.3)', display: 'inline-block' }}
+                    title={`Secondary: ${team.secondaryColor}`}
+                  />
                 </div>
               </div>
             </div>
@@ -493,36 +785,75 @@ export default function PaddockView({
         </div>
       )}
 
-      {/* DRIVER GRID */}
+      {/* ════════════════════════════════════════════
+          DRIVER GRID
+      ════════════════════════════════════════════ */}
       {subTab === 'drivers' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 220px), 1fr))',
+            gap: 10,
+          }}
+        >
           {driverStandings.map((s) => {
-            const team = s.Constructors[0] ? getTeamMeta(s.Constructors[0].constructorId) : getTeamMeta('ferrari');
+            const team = s.Constructors[0]
+              ? getTeamMeta(s.Constructors[0].constructorId)
+              : getTeamMeta('ferrari');
             const meta = getDriverDetails(s.Driver.driverId) || {
               number: s.Driver.permanentNumber ? parseInt(s.Driver.permanentNumber, 10) : 99,
               code: s.Driver.code || 'DRV',
               worldTitles: 0,
             };
             const driverNumber = meta.number || (s.Driver.permanentNumber ? parseInt(s.Driver.permanentNumber, 10) : 99);
-
-            const isLeaderP1 = s.position === '1';
+            const isLeader = s.position === '1';
 
             return (
               <div
                 key={s.Driver.driverId}
                 onClick={() => onSelectDriver && onSelectDriver(s.Driver.driverId)}
-                className={`relative rounded border bg-[var(--bg-secondary)] hover:border-[var(--accent-f1-red)]/60 hover:bg-[var(--bg-tertiary)] transition-all p-4 overflow-hidden group cursor-pointer ${
-                  isLeaderP1 ? 'border-[var(--accent-f1-red)]' : 'border-[var(--border-subtle)]'
-                }`}
-                title={`Click to view ${s.Driver.givenName} ${s.Driver.familyName}`}
+                style={{
+                  position: 'relative',
+                  background: 'var(--bg-raised)',
+                  border: `1px solid ${isLeader ? 'rgba(225,6,0,0.35)' : 'var(--border-dim)'}`,
+                  borderRadius: 'var(--r-md)',
+                  padding: '14px',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  transition: 'border-color 150ms, background 150ms',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = `${team.color}50`;
+                  e.currentTarget.style.background = 'var(--bg-overlay)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = isLeader ? 'rgba(225,6,0,0.35)' : 'var(--border-dim)';
+                  e.currentTarget.style.background = 'var(--bg-raised)';
+                }}
               >
+                {/* Top strip */}
                 <div
-                  className="absolute top-0 left-0 right-0 h-1"
-                  style={{ backgroundColor: team.color }}
-                ></div>
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    background: team.color,
+                  }}
+                />
 
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                {/* Ghost number */}
+                <div
+                  className="ghost-number"
+                  style={{ fontSize: 'clamp(48px, 10vw, 72px)', right: -4, opacity: 0.6 }}
+                >
+                  {driverNumber}
+                </div>
+
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  {/* Driver avatar + nationality */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                     <DriverAvatar
                       driverId={s.Driver.driverId}
                       driverName={`${s.Driver.givenName} ${s.Driver.familyName}`}
@@ -532,32 +863,87 @@ export default function PaddockView({
                       mode="photo"
                       className="shrink-0"
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[10px] font-mono-num font-bold text-[var(--text-muted)] uppercase truncate">
-                        [{getIsoNationalityCode(s.Driver.nationality)}] • {team.name}
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontWeight: 700,
+                          fontSize: 9,
+                          letterSpacing: '0.12em',
+                          textTransform: 'uppercase',
+                          color: 'var(--text-muted)',
+                          marginBottom: 3,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        [{getIsoNationalityCode(s.Driver.nationality)}] &bull; {team.name}
                       </div>
-                      <div className="text-sm font-hud font-black uppercase text-[var(--text-primary)] leading-snug truncate">
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontWeight: 900,
+                          fontSize: 14,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.02em',
+                          color: 'var(--text-primary)',
+                          lineHeight: 1.1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
                         {s.Driver.givenName}{' '}
                         <span style={{ color: team.color }}>{s.Driver.familyName}</span>
                       </div>
                     </div>
                   </div>
 
-                  <span
-                    className="font-hud font-black text-xs px-2 py-0.5 rounded border font-mono-num shrink-0"
+                  {/* Number + stats bar */}
+                  <div
                     style={{
-                      borderColor: team.color,
-                      color: team.color,
-                      backgroundColor: `${team.color}15`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingTop: 8,
+                      borderTop: '1px solid var(--border-dim)',
                     }}
                   >
-                    #{driverNumber}
-                  </span>
-                </div>
-
-                <div className="mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-xs font-mono-num">
-                  <span className="text-[var(--text-muted)]">P{s.position} Rank</span>
-                  <span className="font-bold text-[var(--text-primary)]">{s.points} PTS</span>
+                    <span
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 900,
+                        fontSize: 12,
+                        fontVariantNumeric: 'tabular-nums',
+                        padding: '2px 8px',
+                        borderRadius: 'var(--r-sm)',
+                        background: `${team.color}18`,
+                        border: `1px solid ${team.color}45`,
+                        color: team.color,
+                      }}
+                    >
+                      #{driverNumber}
+                    </span>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        P{s.position}
+                      </div>
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontWeight: 900,
+                          fontSize: 18,
+                          color: 'var(--text-primary)',
+                          fontVariantNumeric: 'tabular-nums',
+                          lineHeight: 1,
+                        }}
+                      >
+                        {s.points}
+                        <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 3, fontWeight: 600 }}>PTS</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             );

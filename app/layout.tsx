@@ -1,19 +1,27 @@
 import type { Metadata, Viewport } from 'next';
-import { Rajdhani, Inter } from 'next/font/google';
+import { Barlow_Condensed, Space_Grotesk, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import Providers from '@/components/Providers';
 
-const rajdhani = Rajdhani({
+const barlowCondensed = Barlow_Condensed({
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
-  variable: '--font-hud',
+  weight: ['400', '500', '600', '700', '800', '900'],
+  style: ['normal', 'italic'],
+  variable: '--font-display',
   display: 'swap',
 });
 
-const inter = Inter({
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-body',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
-  variable: '--font-body',
+  variable: '--font-mono',
   display: 'swap',
 });
 
@@ -77,7 +85,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#121214',
+  themeColor: '#0B0B0E',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -90,8 +98,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`dark ${rajdhani.variable} ${inter.variable}`}>
-      <body className="bg-[var(--bg-primary)] text-[var(--text-primary)] antialiased selection:bg-[var(--accent-f1-red)] selection:text-white min-h-screen">
+    <html
+      lang="en"
+      className={`dark ${barlowCondensed.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+    >
+      <body className="bg-[var(--bg-base)] text-[var(--text-primary)] antialiased selection:bg-[var(--red)] selection:text-white min-h-screen">
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -18,6 +18,14 @@ interface StandingsViewProps {
   onSelectSeason?: (season: string) => void;
 }
 
+/* Position label colours */
+function posColor(index: number) {
+  if (index === 0) return 'var(--amber)';
+  if (index === 1) return '#C0C0C0';
+  if (index === 2) return '#CD7F32';
+  return 'var(--text-muted)';
+}
+
 export default function StandingsView({
   driverStandings,
   constructorStandings,
@@ -29,7 +37,6 @@ export default function StandingsView({
   const [selectedSeason, setSelectedSeason] = useState<string>('2026');
   const [expandedDriverId, setExpandedDriverId] = useState<string | null>(null);
 
-  // Max points for bar scaling
   const maxDriverPoints = parseFloat(driverStandings[0]?.points || '1') || 1;
   const maxConstructorPoints = parseFloat(constructorStandings[0]?.points || '1') || 1;
 
@@ -38,341 +45,562 @@ export default function StandingsView({
     if (onSelectSeason) onSelectSeason(year);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header with Switcher and Season Selector */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black font-hud tracking-tight uppercase text-[var(--text-primary)]">
-            {tab === 'drivers' ? 'Drivers Championship' : 'Constructors Championship'}
-          </h2>
-          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-            Official FIA Formula 1 World Championship Standings
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* View Switcher */}
-          <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-xl border border-[var(--border-subtle)] text-xs font-hud font-bold uppercase">
-            <button
-              onClick={() => setTab('drivers')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                tab === 'drivers'
-                  ? 'bg-[var(--accent-f1-red)] text-white shadow-md shadow-red-950/40'
-                  : 'text-[var(--text-secondary)] hover:text-white'
-              }`}
-            >
-              Drivers
-            </button>
-            <button
-              onClick={() => setTab('constructors')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                tab === 'constructors'
-                  ? 'bg-[var(--accent-f1-red)] text-white shadow-md shadow-red-950/40'
-                  : 'text-[var(--text-secondary)] hover:text-white'
-              }`}
-            >
-              Constructors
-            </button>
-          </div>
-        </div>
+  /* ── Shared header ─────────────────────────── */
+  const Header = () => (
+    <div
+      className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+      style={{
+        padding: '16px 20px',
+        background: 'var(--bg-overlay)',
+        borderBottom: '1px solid var(--border-dim)',
+      }}
+    >
+      <div>
+        <h2
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontWeight: 900,
+            fontSize: 'clamp(22px, 4vw, 30px)',
+            textTransform: 'uppercase',
+            letterSpacing: '-0.01em',
+            lineHeight: 1,
+            color: 'var(--text-primary)',
+            margin: 0,
+          }}
+        >
+          {tab === 'drivers' ? 'Drivers Championship' : 'Constructors Championship'}
+        </h2>
+        <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, fontFamily: 'var(--font-body)' }}>
+          Official FIA Formula 1 World Championship Standings
+        </p>
       </div>
 
+      {/* Tab switcher */}
+      <div
+        className="flex items-center"
+        style={{
+          background: 'var(--bg-base)',
+          border: '1px solid var(--border-dim)',
+          borderRadius: 'var(--r-md)',
+          padding: 4,
+          gap: 4,
+        }}
+      >
+        {(['drivers', 'constructors'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 'var(--r-sm)',
+              background: tab === t ? 'var(--red)' : 'transparent',
+              color: tab === t ? '#fff' : 'var(--text-secondary)',
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              fontSize: 12,
+              letterSpacing: '0.10em',
+              textTransform: 'uppercase',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background 150ms, color 150ms',
+            }}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
-      {/* DRIVERS STANDINGS TABLE */}
-      {tab === 'drivers' ? (
-        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl">
-          {/* Table Header Row */}
-          <div className="grid grid-cols-12 gap-2 px-3 py-2.5 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)] text-[10px] font-hud font-bold uppercase tracking-wider text-[var(--text-muted)]">
-            <div className="col-span-2 sm:col-span-1 text-center">POS</div>
-            <div className="col-span-6 sm:col-span-5">DRIVER / CONSTRUCTOR</div>
-            <div className="col-span-4 sm:col-span-4 text-right pr-2">PTS • GAP</div>
-            <div className="hidden sm:block sm:col-span-2 text-right">PACE PROFILE</div>
-          </div>
+  /* ── Column header row ─────────────────────── */
+  const ColHeader = ({ children, right }: { children: React.ReactNode; right?: boolean }) => (
+    <div
+      style={{
+        fontFamily: 'var(--font-display)',
+        fontWeight: 700,
+        fontSize: 10,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        color: 'var(--text-muted)',
+        textAlign: right ? 'right' : 'left',
+      }}
+    >
+      {children}
+    </div>
+  );
 
-          {/* Rows */}
-          {driverStandings.map((standing, index) => {
-            const team = standing.Constructors[0]
-              ? getTeamMeta(standing.Constructors[0].constructorId)
-              : getTeamMeta('ferrari');
-            const driverId = standing.Driver.driverId;
-            const extra = getDriverDetails(driverId);
-            const points = parseFloat(standing.points) || 0;
-            const gapToLeader = index === 0 ? 0 : points - maxDriverPoints;
-            const percentOfLeader = Math.max(4, (points / maxDriverPoints) * 100);
-            const isP1 = index === 0;
-            const isExpanded = expandedDriverId === driverId;
-            const driverNumber = extra?.number || (standing.Driver.permanentNumber ? parseInt(standing.Driver.permanentNumber, 10) : undefined) || 99;
+  return (
+    <div>
+      {/* Container */}
+      <div
+        style={{
+          background: 'var(--bg-raised)',
+          border: '1px solid var(--border-dim)',
+          borderRadius: 'var(--r-lg)',
+          overflow: 'hidden',
+        }}
+      >
+        <Header />
 
-            return (
-              <div key={standing.Driver.driverId} className="flex flex-col border-b border-[var(--border-subtle)] last:border-b-0">
+        {/* ════════════════════════════════════════════
+            DRIVERS TABLE
+        ════════════════════════════════════════════ */}
+        {tab === 'drivers' ? (
+          <div>
+            {/* Column headers */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '48px 1fr 56px 64px',
+                gap: '0 8px',
+                padding: '8px 20px',
+                background: 'var(--bg-overlay)',
+                borderBottom: '1px solid var(--border-dim)',
+              }}
+            >
+              <ColHeader>POS</ColHeader>
+              <ColHeader>Driver</ColHeader>
+              <ColHeader right>Gap</ColHeader>
+              <ColHeader right>PTS</ColHeader>
+            </div>
+
+            {/* Rows */}
+            {driverStandings.map((standing, index) => {
+              const team = standing.Constructors[0]
+                ? getTeamMeta(standing.Constructors[0].constructorId)
+                : getTeamMeta('ferrari');
+              const driverId = standing.Driver.driverId;
+              const extra = getDriverDetails(driverId);
+              const points = parseFloat(standing.points) || 0;
+              const gapToLeader = index === 0 ? 0 : points - maxDriverPoints;
+              const percentOfLeader = Math.max(3, (points / maxDriverPoints) * 100);
+              const isP1 = index === 0;
+              const isExpanded = expandedDriverId === driverId;
+              const driverNumber =
+                extra?.number ||
+                (standing.Driver.permanentNumber
+                  ? parseInt(standing.Driver.permanentNumber, 10)
+                  : undefined) ||
+                99;
+
+              return (
                 <div
-                  onClick={() => {
-                    // On mobile, toggle expansion; on desktop, open profile directly
-                    if (window.innerWidth < 640) {
-                      setExpandedDriverId(isExpanded ? null : driverId);
-                    } else if (onSelectDriver) {
-                      onSelectDriver(driverId);
-                    }
-                  }}
-                  className="group relative grid grid-cols-12 gap-2 items-center px-3 py-3 min-h-[50px] hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer select-none"
-                  title={`Tap to view ${standing.Driver.givenName} ${standing.Driver.familyName}`}
+                  key={driverId}
+                  style={{ borderBottom: '1px solid var(--border-dim)' }}
                 >
-                  {/* Team Livery Color Left Border Accent */}
                   <div
-                    className="absolute left-0 top-0 bottom-0 w-1"
-                    style={{ backgroundColor: team.color }}
-                  ></div>
-
-                  {/* 1. POS & Permanent Number */}
-                  <div className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1 font-mono-num font-black text-sm">
-                    <span className={isP1 ? 'text-[var(--accent-f1-red)] font-black' : 'text-[var(--text-muted)]'}>
-                      {standing.position}
-                    </span>
-                    <span
-                      className="text-[9px] font-bold px-1 rounded sm:hidden"
-                      style={{ color: team.color, backgroundColor: `${team.color}15` }}
-                    >
-                      #{driverNumber}
-                    </span>
-                  </div>
-
-                  {/* 2. DRIVER / TEAM WITH DRIVER AVATAR */}
-                  <div className="col-span-6 sm:col-span-5 min-w-0 pr-1 flex items-center gap-2">
-                    <DriverAvatar
-                      driverId={driverId}
-                      driverName={`${standing.Driver.givenName} ${standing.Driver.familyName}`}
-                      permanentNumber={driverNumber}
-                      teamColor={team.color}
-                      size="sm"
-                      mode="photo"
-                      className="hidden sm:flex shrink-0"
+                    onClick={() => {
+                      if (window.innerWidth < 640) {
+                        setExpandedDriverId(isExpanded ? null : driverId);
+                      } else if (onSelectDriver) {
+                        onSelectDriver(driverId);
+                      }
+                    }}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '48px 1fr 56px 64px',
+                      gap: '0 8px',
+                      alignItems: 'center',
+                      padding: '0 20px',
+                      minHeight: 56,
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background 120ms',
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-highlight)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    {/* Team color left accent */}
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 3,
+                        background: team.color,
+                      }}
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 truncate">
-                        <span className="font-hud font-bold uppercase text-xs sm:text-sm text-[var(--text-primary)] group-hover:text-white truncate">
+
+                    {/* POS */}
+                    <div
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 900,
+                        fontStyle: 'italic',
+                        fontSize: 20,
+                        lineHeight: 1,
+                        color: posColor(index),
+                        textAlign: 'center',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {standing.position}
+                    </div>
+
+                    {/* Driver info */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, overflow: 'hidden' }}>
+                      <DriverAvatar
+                        driverId={driverId}
+                        driverName={`${standing.Driver.givenName} ${standing.Driver.familyName}`}
+                        permanentNumber={driverNumber}
+                        teamColor={team.color}
+                        size="sm"
+                        mode="photo"
+                        className="hidden sm:flex shrink-0"
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-display)',
+                            fontWeight: 700,
+                            fontSize: 14,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.04em',
+                            color: 'var(--text-primary)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
                           {standing.Driver.givenName}{' '}
-                          <span className="font-black">{standing.Driver.familyName}</span>
-                        </span>
-                        <span className="text-xs shrink-0">
-                          {getNationalityFlag(standing.Driver.nationality) || extra?.countryFlag || '🏁'}
-                        </span>
-                      </div>
-                      <div className="text-[10px] text-[var(--text-muted)] font-medium truncate">
-                        {team.name}
+                          <strong style={{ fontWeight: 900 }}>{standing.Driver.familyName}</strong>
+                          {' '}
+                          <span style={{ fontSize: 12 }}>
+                            {getNationalityFlag(standing.Driver.nationality) || extra?.countryFlag || ''}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            fontFamily: 'var(--font-body)',
+                            fontSize: 11,
+                            color: 'var(--text-muted)',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                          }}
+                        >
+                          {team.name}
+                        </div>
+                        {/* Mini progress bar */}
+                        <div
+                          style={{
+                            height: 2,
+                            background: 'var(--bg-base)',
+                            borderRadius: 99,
+                            overflow: 'hidden',
+                            marginTop: 4,
+                          }}
+                        >
+                          <div
+                            style={{
+                              height: '100%',
+                              width: `${percentOfLeader}%`,
+                              background: isP1 ? 'var(--red)' : team.color,
+                              transition: 'width 600ms var(--ease-snap)',
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* 3. RECENT FORM (Hidden on small mobile, visible in expanded drawer or sm+) */}
-                  <div className="col-span-2 hidden sm:flex items-center justify-center">
-                    <PaceTrace driverId={driverId} width={42} height={12} />
-                  </div>
-
-                  {/* 4. GAP / WINS (Hidden on small mobile, visible in expanded drawer or sm+) */}
-                  <div className="col-span-2 hidden sm:block text-right font-mono-num text-xs">
-                    <div className="font-bold text-[var(--text-secondary)]">
+                    {/* Gap */}
+                    <div style={{ textAlign: 'right' }}>
                       {isP1 ? (
-                        <span className="text-[var(--accent-f1-red)] font-hud uppercase tracking-wider text-[11px]">
-                          LEADER
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-display)',
+                            fontWeight: 700,
+                            fontSize: 10,
+                            letterSpacing: '0.10em',
+                            textTransform: 'uppercase',
+                            color: 'var(--red)',
+                          }}
+                        >
+                          LEAD
                         </span>
                       ) : (
-                        <span>{gapToLeader.toFixed(0)} PTS</span>
+                        <span
+                          style={{
+                            fontFamily: 'var(--font-mono)',
+                            fontSize: 12,
+                            color: 'var(--text-secondary)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                        >
+                          {gapToLeader.toFixed(0)} pts
+                        </span>
+                      )}
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-mono)',
+                          fontSize: 10,
+                          color: 'var(--text-muted)',
+                          marginTop: 1,
+                        }}
+                      >
+                        {standing.wins}W
+                      </div>
+                    </div>
+
+                    {/* Points */}
+                    <div
+                      style={{
+                        textAlign: 'right',
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 900,
+                        fontSize: 'clamp(18px, 3vw, 26px)',
+                        color: isP1 ? 'var(--text-primary)' : 'var(--text-primary)',
+                        fontVariantNumeric: 'tabular-nums',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'flex-end',
+                        gap: 6,
+                      }}
+                    >
+                      <span>{standing.points}</span>
+                      {/* Mobile expand */}
+                      <span className="sm:hidden" style={{ color: 'var(--text-muted)', flexShrink: 0 }}>
+                        {isExpanded ? (
+                          <ChevronUp style={{ width: 13, height: 13 }} />
+                        ) : (
+                          <ChevronDown style={{ width: 13, height: 13 }} />
+                        )}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Mobile expand drawer */}
+                  {isExpanded && (
+                    <div
+                      className="sm:hidden animate-fade-in"
+                      style={{
+                        background: 'var(--bg-overlay)',
+                        borderTop: '1px solid var(--border-dim)',
+                        padding: '12px 20px',
+                      }}
+                    >
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                        {[
+                          { label: 'Gap to Leader', value: isP1 ? 'LEADER' : `${gapToLeader.toFixed(0)} PTS` },
+                          { label: 'Season Wins', value: `${standing.wins} ${standing.wins === '1' ? 'Win' : 'Wins'}` },
+                        ].map((stat) => (
+                          <div
+                            key={stat.label}
+                            style={{
+                              padding: '10px 12px',
+                              background: 'var(--bg-raised)',
+                              border: '1px solid var(--border-dim)',
+                              borderRadius: 'var(--r-sm)',
+                            }}
+                          >
+                            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 10, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                              {stat.label}
+                            </div>
+                            <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 15, color: 'var(--text-primary)', marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>
+                              {stat.value}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 12px',
+                          background: 'var(--bg-raised)',
+                          border: '1px solid var(--border-dim)',
+                          borderRadius: 'var(--r-sm)',
+                          marginBottom: 10,
+                        }}
+                      >
+                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 10, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                          5-Race Pace Form
+                        </span>
+                        <PaceTrace driverId={driverId} width={64} height={16} />
+                      </div>
+                      {onSelectDriver && (
+                        <button
+                          onClick={() => onSelectDriver(driverId)}
+                          className="w-full btn-red flex items-center justify-center gap-1.5"
+                          style={{ minHeight: 44 }}
+                        >
+                          Open Full Driver Dossier
+                          <ChevronRight style={{ width: 13, height: 13 }} />
+                        </button>
                       )}
                     </div>
-                    <div className="text-[10px] text-[var(--text-muted)]">
-                      {standing.wins} {standing.wins === '1' ? 'WIN' : 'WINS'}
-                    </div>
-                  </div>
-
-                  {/* 5. POINTS & Mobile Expand Indicator */}
-                  <div className="col-span-4 sm:col-span-2 flex items-center justify-end gap-1.5 pr-2">
-                    <span className="font-mono-num font-black text-base sm:text-xl text-[var(--text-primary)]">
-                      {standing.points}
-                    </span>
-                    <div className="sm:hidden text-[var(--text-muted)]">
-                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-                    </div>
-                  </div>
-
-                  {/* Thin Sub-bar for Relative Scale */}
-                  <div className="col-span-12 h-0.5 bg-[var(--bg-primary)] rounded-full overflow-hidden mt-1 opacity-60">
-                    <div
-                      className="h-full"
-                      style={{
-                        width: `${percentOfLeader}%`,
-                        backgroundColor: isP1 ? 'var(--accent-f1-red)' : team.color,
-                      }}
-                    ></div>
-                  </div>
+                  )}
                 </div>
-
-                {/* Mobile Tap-To-Expand Telemetry Drawer (Zero Horizontal Scroll) */}
-                {isExpanded && (
-                  <div className="sm:hidden bg-[var(--bg-primary)]/90 border-t border-[var(--border-subtle)] p-3 space-y-3 animate-fadeIn">
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2 rounded bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                        <span className="text-[10px] text-[var(--text-muted)] font-hud uppercase font-bold block">
-                          Gap to Leader
-                        </span>
-                        <span className="font-mono-num font-bold text-sm text-[var(--text-primary)]">
-                          {isP1 ? 'CHAMPIONSHIP LEADER' : `${gapToLeader.toFixed(0)} PTS`}
-                        </span>
-                      </div>
-                      <div className="p-2 rounded bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                        <span className="text-[10px] text-[var(--text-muted)] font-hud uppercase font-bold block">
-                          Season Wins
-                        </span>
-                        <span className="font-mono-num font-bold text-sm text-[var(--text-primary)]">
-                          {standing.wins} {standing.wins === '1' ? 'Win' : 'Wins'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center justify-between p-2 rounded bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
-                      <span className="text-[10px] text-[var(--text-muted)] font-hud uppercase font-bold">
-                        Rolling 5-Race Pace Form
-                      </span>
-                      <PaceTrace driverId={driverId} width={64} height={16} />
-                    </div>
-
-                    {onSelectDriver && (
-                      <button
-                        onClick={() => onSelectDriver(driverId)}
-                        className="w-full min-h-[44px] py-2 px-3 rounded-lg bg-[var(--accent-f1-red)] text-white text-xs font-hud font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-opacity cursor-pointer"
-                      >
-                        <span>Open Full Driver Dossier</span>
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* CONSTRUCTORS STANDINGS TABLE */
-        <div className="border border-[var(--border-subtle)] rounded bg-[var(--bg-secondary)] divide-y divide-[var(--border-subtle)] overflow-hidden">
-          {/* Header */}
-          <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-[var(--bg-primary)] text-[10px] font-hud font-bold uppercase tracking-wider text-[var(--text-muted)] select-none">
-            <div className="col-span-1 text-center">POS</div>
-            <div className="col-span-6 sm:col-span-5">CONSTRUCTOR / ENGINE</div>
-            <div className="col-span-2 hidden sm:block text-center">RECENT FORM</div>
-            <div className="col-span-3 sm:col-span-2 text-right">GAP / WINS</div>
-            <div className="col-span-2 sm:col-span-2 text-right">POINTS</div>
+              );
+            })}
           </div>
+        ) : (
+          /* ════════════════════════════════════════════
+              CONSTRUCTORS TABLE
+          ════════════════════════════════════════════ */
+          <div>
+            {/* Column headers */}
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '48px 1fr 64px 80px',
+                gap: '0 8px',
+                padding: '8px 20px',
+                background: 'var(--bg-overlay)',
+                borderBottom: '1px solid var(--border-dim)',
+              }}
+            >
+              <ColHeader>POS</ColHeader>
+              <ColHeader>Constructor</ColHeader>
+              <ColHeader right>Gap</ColHeader>
+              <ColHeader right>PTS</ColHeader>
+            </div>
 
-          {/* Rows */}
-          {constructorStandings.map((standing, index) => {
-            const team = getTeamMeta(standing.Constructor.constructorId);
-            const points = parseFloat(standing.points) || 0;
-            const gapToLeader = index === 0 ? 0 : points - maxConstructorPoints;
-            const percentOfLeader = Math.max(4, (points / maxConstructorPoints) * 100);
-            const isP1 = index === 0;
+            {constructorStandings.map((standing, index) => {
+              const team = getTeamMeta(standing.Constructor.constructorId);
+              const points = parseFloat(standing.points) || 0;
+              const gapToLeader = index === 0 ? 0 : points - maxConstructorPoints;
+              const percentOfLeader = Math.max(3, (points / maxConstructorPoints) * 100);
+              const isP1 = index === 0;
 
-            return (
-              <div
-                key={standing.Constructor.constructorId}
-                onClick={() => onSelectConstructor && onSelectConstructor(standing.Constructor.constructorId)}
-                className="group relative grid grid-cols-12 gap-2 items-center px-3 py-3 hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer select-none"
-                title={`Click to view ${standing.Constructor.name} constructor dossier`}
-              >
-                {/* 3px Team Livery Color Left Border Accent */}
+              return (
                 <div
-                  className="absolute left-0 top-0 bottom-0 w-1"
-                  style={{ backgroundColor: team.color }}
-                ></div>
+                  key={standing.Constructor.constructorId}
+                  onClick={() => onSelectConstructor && onSelectConstructor(standing.Constructor.constructorId)}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '48px 1fr 64px 80px',
+                    gap: '0 8px',
+                    alignItems: 'center',
+                    padding: '0 20px',
+                    minHeight: 60,
+                    cursor: 'pointer',
+                    position: 'relative',
+                    borderBottom: '1px solid var(--border-dim)',
+                    transition: 'background 120ms',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-highlight)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  {/* Team color accent */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: 3,
+                      background: team.color,
+                    }}
+                  />
 
-                {/* POS */}
-                <div className="col-span-1 text-center font-mono-num font-black text-sm sm:text-base">
-                  <span className={isP1 ? 'text-[var(--accent-f1-red)] font-black' : 'text-[var(--text-muted)]'}>
+                  {/* POS */}
+                  <div
+                    style={{
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 900,
+                      fontStyle: 'italic',
+                      fontSize: 20,
+                      lineHeight: 1,
+                      color: posColor(index),
+                      textAlign: 'center',
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
                     {standing.position}
-                  </span>
-                </div>
+                  </div>
 
-                {/* CONSTRUCTOR WITH CAR SIDE PROFILE */}
-                <div className="col-span-6 sm:col-span-5 min-w-0 pr-1">
-                  <div className="flex items-center gap-3">
-                    <span
-                      className="w-2.5 h-7 rounded-full shrink-0 border border-black/30 shadow-sm"
-                      style={{ backgroundColor: team.color }}
-                    ></span>
-                    
+                  {/* Constructor */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        width: 10,
+                        height: 28,
+                        borderRadius: 99,
+                        background: team.color,
+                        flexShrink: 0,
+                      }}
+                    />
                     {team.carImageUrl && (
                       <img
                         src={team.carImageUrl}
                         alt={team.name}
-                        className="h-7 w-auto object-contain shrink-0 hidden md:block filter drop-shadow-md"
+                        className="hidden md:block"
+                        style={{ height: 28, width: 'auto', objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))' }}
                         onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                       />
                     )}
-
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="font-hud font-extrabold uppercase text-xs sm:text-base text-[var(--text-primary)] group-hover:text-[var(--apex-crimson)] transition-colors truncate">
-                          {standing.Constructor.name}
-                        </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontWeight: 800,
+                          fontSize: 15,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          color: 'var(--text-primary)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {standing.Constructor.name}
                         {team.logoImageUrl && (
                           <img
                             src={team.logoImageUrl}
                             alt={team.name}
-                            className="h-3.5 w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity hidden sm:block"
+                            className="hidden sm:inline-block"
+                            style={{ height: 14, width: 'auto', objectFit: 'contain', marginLeft: 8, opacity: 0.7, verticalAlign: 'middle' }}
                             onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                           />
                         )}
                       </div>
-                      <div className="text-[10px] text-[var(--text-muted)] truncate">
-                        {team.powerUnit} Power • {team.base}
+                      <div style={{ fontFamily: 'var(--font-body)', fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                        {team.powerUnit} &bull; {team.base}
+                      </div>
+                      <div style={{ height: 2, background: 'var(--bg-base)', borderRadius: 99, overflow: 'hidden', marginTop: 4 }}>
+                        <div style={{ height: '100%', width: `${percentOfLeader}%`, background: isP1 ? 'var(--red)' : team.color, transition: 'width 600ms var(--ease-snap)' }} />
                       </div>
                     </div>
                   </div>
-                </div>
 
-                {/* FORM */}
-                <div className="col-span-2 hidden sm:flex items-center justify-center">
-                  <PaceTrace width={42} height={12} color={team.color} />
-                </div>
-
-                {/* GAP / WINS */}
-                <div className="col-span-3 sm:col-span-2 text-right font-mono-num text-xs">
-                  <div className="font-bold text-[var(--text-secondary)]">
+                  {/* Gap */}
+                  <div style={{ textAlign: 'right' }}>
                     {isP1 ? (
-                      <span className="text-[var(--accent-f1-red)] font-hud uppercase tracking-wider text-[11px]">
-                        LEADER
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 10, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--red)' }}>
+                        LEAD
                       </span>
                     ) : (
-                      <span>{gapToLeader.toFixed(0)} PTS</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+                        {gapToLeader.toFixed(0)} pts
+                      </span>
                     )}
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', marginTop: 1 }}>
+                      {standing.wins}W
+                    </div>
                   </div>
-                  <div className="text-[10px] text-[var(--text-muted)]">
-                    {standing.wins} WINS
-                  </div>
-                </div>
 
-                {/* POINTS */}
-                <div className="col-span-2 sm:col-span-2 text-right">
-                  <span className="font-mono-num font-black text-base sm:text-xl text-[var(--text-primary)]">
-                    {standing.points}
-                  </span>
-                </div>
-
-                {/* Relative Visual Scale Bar */}
-                <div className="col-span-12 h-0.5 bg-[var(--bg-primary)] rounded-full overflow-hidden mt-1 opacity-60">
+                  {/* Points */}
                   <div
-                    className="h-full"
                     style={{
-                      width: `${percentOfLeader}%`,
-                      backgroundColor: isP1 ? 'var(--accent-f1-red)' : team.color,
+                      textAlign: 'right',
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 900,
+                      fontSize: 'clamp(20px, 3vw, 28px)',
+                      color: 'var(--text-primary)',
+                      fontVariantNumeric: 'tabular-nums',
                     }}
-                  ></div>
+                  >
+                    {standing.points}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-

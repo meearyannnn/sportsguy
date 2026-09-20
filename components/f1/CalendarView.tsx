@@ -174,14 +174,14 @@ export default function CalendarView({
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* ==================== HERO HEADER (MATCHES DASHBOARD SLEEK TELEMETRY UI) ==================== */}
       {nextRace && (
-        <div className="relative rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] p-6 space-y-6 overflow-hidden">
+        <div className="relative overflow-hidden" style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-dim)', borderRadius: 'var(--r-lg)', padding: 'clamp(16px,3vw,28px)' }}>
           {/* Top Info Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-[4px] bg-[var(--bg-tertiary)] border border-[var(--border-subtle)] text-[var(--text-secondary)] font-mono text-[11px] uppercase tracking-wider">
+              <span className="flex items-center gap-1.5" style={{ padding: '4px 12px', background: 'var(--red-subtle)', border: '1px solid rgba(225,6,0,0.25)', borderRadius: 'var(--r-pill)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--red)' }}>
                 ROUND {nextRace.round} • 2026 CHAMPIONSHIP
               </span>
               <span className="text-xs font-hud text-[var(--text-muted)] uppercase tracking-wider">
@@ -204,7 +204,7 @@ export default function CalendarView({
                   <MapPin className="w-3.5 h-3.5 text-[var(--text-muted)] opacity-60 shrink-0" strokeWidth={1.75} />
                   <span>{nextRace.Circuit.Location.locality}, {nextRace.Circuit.Location.country}</span>
                 </div>
-                <h1 className="text-2xl sm:text-4xl font-black font-hud uppercase tracking-tight text-[var(--text-primary)]">
+                 <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 'clamp(22px,5vw,42px)', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 0.95, color: 'var(--text-primary)', margin: '6px 0 0' }}>
                   {nextRace.raceName}
                 </h1>
                 <p className="text-xs sm:text-sm text-[var(--text-secondary)] mt-1">
@@ -213,7 +213,7 @@ export default function CalendarView({
               </div>
 
               {/* Lights Out Countdown Box */}
-              <div className="p-4 rounded-xl bg-[var(--bg-tertiary)]/60 border border-[var(--border-subtle)] space-y-3">
+              <div style={{ padding: '14px 16px', background: 'rgba(0,0,0,0.28)', border: '1px solid var(--border-dim)', borderRadius: 'var(--r-md)' }}>
                 <div className="flex items-center justify-between text-xs font-hud font-semibold uppercase tracking-wider text-[var(--text-muted)]">
                   <span className="flex items-center gap-1.5 text-[var(--text-muted)]">
                     <Clock className="w-3.5 h-3.5 text-[var(--text-muted)] opacity-60 shrink-0" strokeWidth={1.75} />
@@ -287,7 +287,7 @@ export default function CalendarView({
       {/* ==================== PRECISION FILTER & SEARCH BAR ==================== */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
         {/* Segmented Filter Control */}
-        <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
           {[
             { id: 'all', label: 'All 24 Rounds' },
             { id: 'upcoming', label: 'Upcoming Races' },
@@ -297,11 +297,22 @@ export default function CalendarView({
             <button
               key={item.id}
               onClick={() => setFilter(item.id as any)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-hud font-bold uppercase tracking-wider transition-colors shrink-0 cursor-pointer ${
-                filter === item.id
-                  ? 'bg-[var(--accent-f1-red)] text-white'
-                  : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border border-[var(--border-subtle)]'
-              }`}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 'var(--r-sm)',
+                background: filter === item.id ? 'var(--red)' : 'var(--bg-raised)',
+                color: filter === item.id ? '#fff' : 'var(--text-secondary)',
+                border: filter === item.id ? 'none' : '1px solid var(--border-dim)',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 700,
+                fontSize: 11,
+                letterSpacing: '0.10em',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                transition: 'background 150ms, color 150ms',
+              }}
             >
               {item.label}
             </button>
@@ -322,7 +333,7 @@ export default function CalendarView({
       </div>
 
       {/* ==================== ROUND CARDS GRID ==================== */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%,300px),1fr))', gap: 12 }}>
         {filteredRaces.map((race) => {
           const podium = livePodiums[race.round];
           const isNextUpcoming = race.round === nextRace?.round && !race.isPast;
@@ -330,27 +341,37 @@ export default function CalendarView({
           return (
             <div
               key={race.round}
-              className={`group relative rounded-xl bg-[var(--bg-secondary)] border p-5 transition-colors flex flex-col justify-between h-full overflow-hidden ${
-                isNextUpcoming
-                  ? 'border-[var(--accent-f1-red)]/50'
-                  : 'border-[var(--border-subtle)] hover:border-[var(--border-hover)]'
-              }`}
+              className="group"
+              style={{
+                position: 'relative',
+                background: 'var(--bg-raised)',
+                border: `1px solid ${isNextUpcoming ? 'rgba(225,6,0,0.40)' : 'var(--border-dim)'}`,
+                borderRadius: 'var(--r-lg)',
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                overflow: 'hidden',
+                transition: 'border-color 150ms, background 150ms',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = isNextUpcoming ? 'rgba(225,6,0,0.60)' : 'var(--border-mid)'; e.currentTarget.style.background = 'var(--bg-overlay)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = isNextUpcoming ? 'rgba(225,6,0,0.40)' : 'var(--border-dim)'; e.currentTarget.style.background = 'var(--bg-raised)'; }}
             >
               <div className="space-y-4">
                 {/* Header Row: Round Badge & Date */}
                 <div className="flex items-baseline justify-between">
-                  <span className="px-2 py-0.5 rounded-[4px] text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-tertiary)]/50 border border-[var(--border-subtle)] uppercase tracking-wider">
-                    ROUND {race.round}
+                  <span style={{ padding: '2px 8px', borderRadius: 'var(--r-sm)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)', background: 'var(--bg-overlay)', border: '1px solid var(--border-dim)' }}>
+                    RND {race.round}
                   </span>
 
-                  <span className="text-xs font-mono font-medium text-[var(--text-secondary)] tabular-nums">
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
                     {formatDateRange(race.date)}
                   </span>
                 </div>
 
                 {/* Grand Prix & Circuit Details (Flush left, no emojis) */}
                 <div>
-                  <h3 className="font-hud font-black text-lg text-[var(--text-primary)] group-hover:text-[var(--accent-f1-red)] transition-colors line-clamp-1">
+                  <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 18, textTransform: 'uppercase', letterSpacing: '-0.01em', color: 'var(--text-primary)', lineHeight: 1.05, margin: '4px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {race.raceName}
                   </h3>
 
@@ -459,16 +480,35 @@ export default function CalendarView({
               </div>
 
               {/* Card Footer Button */}
-              <div className="mt-4 pt-3 border-t border-[var(--border-subtle)]">
+              <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border-dim)' }}>
                 <button
                   onClick={() => {
                     if (onSelectRace) onSelectRace(race);
                     setSelectedModalRace(race);
                   }}
-                  className="w-full py-2 px-3 rounded-lg bg-[var(--bg-tertiary)]/60 hover:bg-[var(--bg-primary)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] text-xs font-hud font-bold uppercase tracking-wider text-[var(--text-primary)] flex items-center justify-between transition-colors cursor-pointer"
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 'var(--r-sm)',
+                    background: 'var(--bg-highlight)',
+                    border: '1px solid var(--border-dim)',
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: 12,
+                    letterSpacing: '0.10em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'background 150ms',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-overlay)')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-highlight)')}
                 >
                   <span>{race.isPast ? 'View Full Race Results' : 'Grand Prix Details'}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] opacity-60 shrink-0" strokeWidth={1.75} />
+                  <ChevronRight className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)', flexShrink: 0 }} strokeWidth={1.75} />
                 </button>
               </div>
             </div>
