@@ -420,7 +420,7 @@ export default function Navbar({
             <div className="relative" ref={moreDropdownRef}>
               <button
                 onClick={() => setIsMoreOpen((p) => !p)}
-                className="flex items-center gap-1 cursor-pointer transition-colors"
+                className="relative flex items-center gap-1.5 cursor-pointer transition-colors"
                 style={{
                   padding: '6px 12px',
                   borderRadius: 'var(--r-sm)',
@@ -439,14 +439,29 @@ export default function Navbar({
               >
                 <span>
                   {isSecondaryActive
-                    ? secondaryTabs.find((s) => s.id === activeTab)?.label || 'More'
+                    ? (activeTab === 'junior' ? 'F2 / F3'
+                        : activeTab === 'pitcrew' ? 'Pit Crew'
+                        : activeTab === 'testing' ? 'Testing'
+                        : activeTab === 'news' ? 'News'
+                        : activeTab === 'analytics' ? 'Intel'
+                        : activeTab === 'stories' ? 'Stories'
+                        : activeTab === 'archive' ? 'Archive'
+                        : activeTab === 'results' ? 'Results'
+                        : activeTab === 'about' ? 'About'
+                        : 'More')
                     : 'More'}
                 </span>
+                {isSecondaryActive && (
+                  <span
+                    className="absolute bottom-0 left-3 right-3 rounded-full"
+                    style={{ height: 2, background: 'var(--red)', borderRadius: 99 }}
+                  />
+                )}
                 <ChevronDown
                   style={{
                     width: 12,
                     height: 12,
-                    color: 'var(--text-muted)',
+                    color: isSecondaryActive ? 'var(--text-primary)' : 'var(--text-muted)',
                     transform: isMoreOpen ? 'rotate(180deg)' : 'rotate(0deg)',
                     transition: 'transform 180ms',
                   }}
@@ -455,10 +470,10 @@ export default function Navbar({
 
               {isMoreOpen && (
                 <div
-                  className="absolute left-0 z-50 animate-fade-in"
+                  className="absolute right-0 z-50 animate-fade-in"
                   style={{
                     top: 'calc(100% + 8px)',
-                    width: 210,
+                    width: 224,
                     background: 'var(--bg-overlay)',
                     border: '1px solid var(--border-mid)',
                     borderRadius: 'var(--r-md)',

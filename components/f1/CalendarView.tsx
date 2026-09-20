@@ -392,7 +392,6 @@ export default function CalendarView({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (onViewResults) onViewResults(race.round);
                           setSelectedModalRace(race);
                         }}
                         className="text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"

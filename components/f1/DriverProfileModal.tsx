@@ -1,6 +1,5 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { getDriverProfile, DriverCareerProfile, DriverSeasonEntry } from '@/lib/f1/driverCareer';
 import { getIsoNationalityCode } from '@/lib/f1/teams';
 import { OpenF1Session } from '@/lib/f1/types';
@@ -41,12 +40,17 @@ export default function DriverProfileModal({
   onClose,
   session,
 }: DriverProfileModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState<DriverCareerProfile | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'identity' | 'timeline' | 'circuits' | 'rivalry'>('overview');
   const [expandedSeason, setExpandedSeason] = useState<number | null>(null);
   const [compareDriverId, setCompareDriverId] = useState<string>('norris');
   const [compareProfile, setCompareProfile] = useState<DriverCareerProfile | null>(null);
   const [circuitSortField, setCircuitSortField] = useState<'wins' | 'starts' | 'podiums' | 'avgFinish'>('wins');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -115,20 +119,54 @@ export default function DriverProfileModal({
     })
     .join(' ');
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 overflow-y-auto">
+  if (!isOpen || !profile || !mounted) return null;
+
+  return createPortal(
+    /* outer: scroll container */
+    <div
+      className="fixed inset-0 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+      }}
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity"
         onClick={onClose}
-      ></div>
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      />
 
-      <div
-        className="relative w-full max-w-4xl rounded bg-[var(--bg-secondary)] border border-[var(--border-subtle)] shadow-2xl overflow-hidden z-10 my-auto text-[var(--text-primary)]"
-        style={{ borderLeft: `4px solid ${profile.teamColor}` }}
-      >
-        {/* Top Hero Banner — Flat Paddock Neutral */}
-        <div className="relative p-5 sm:p-8 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
+      {/* inner: centering wrapper */}
+      <div className="flex min-h-screen sm:min-h-full items-center justify-center p-2 sm:p-4 w-full">
+        <div
+          className="relative w-full max-w-4xl shadow-2xl overflow-hidden z-10 text-[var(--text-primary)] animate-scale-in my-auto"
+          style={{
+            background: 'var(--bg-raised)',
+            border: `1px solid var(--border-dim)`,
+            borderLeft: `3px solid ${profile.teamColor}`,
+            borderRadius: 'var(--r-lg)',
+            maxHeight: '92vh',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Top Hero Banner */}
+          <div
+            className="relative"
+            style={{ padding: '24px', borderBottom: '1px solid var(--border-dim)', background: 'var(--bg-overlay)' }}
+          >
           {/* Close button (min 44x44px touch target) */}
           <button
             onClick={onClose}
@@ -839,8 +877,10 @@ export default function DriverProfileModal({
           >
             Close Dossier
           </button>
+          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

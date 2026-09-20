@@ -1,6 +1,5 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   JUNIOR_SERIES_DATABASE,
   JuniorSeriesData,
@@ -29,6 +28,7 @@ import {
   Search,
   SlidersHorizontal,
   RefreshCw,
+  X,
 } from 'lucide-react';
 
 type SeriesKey = 'f2' | 'f3' | 'academy';
@@ -77,12 +77,33 @@ function JuniorDriverAvatar({
 
 export default function JuniorSeriesView() {
   const [activeSeries, setActiveSeries] = useState<SeriesKey>('f2');
+  const [mounted, setMounted] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<ViewSubTab>('grid');
   const [driverSearch, setDriverSearch] = useState<string>('');
   const [selectedAcademyFilter, setSelectedAcademyFilter] = useState<string>('all');
+  const [selectedDriver, setSelectedDriver] = useState<JuniorDriver | null>(null);
   const [seriesDataMap, setSeriesDataMap] = useState<Record<SeriesKey, JuniorSeriesData>>(JUNIOR_SERIES_DATABASE);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (selectedDriver) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setSelectedDriver(null);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [selectedDriver]);
 
   const fetchLiveJuniorData = async (series: SeriesKey) => {
     setIsLoading(true);
@@ -358,7 +379,8 @@ export default function JuniorSeriesView() {
             {filteredDrivers.map((driver) => (
               <div
                 key={driver.id}
-                className="group relative rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] p-5 transition-all duration-200 flex flex-col justify-between overflow-hidden"
+                onClick={() => setSelectedDriver(driver)}
+                className="group relative rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] hover:border-[var(--border-hover)] p-5 transition-all duration-200 flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-lg"
               >
                 {/* Top Accent line */}
                 <div
@@ -480,7 +502,12 @@ export default function JuniorSeriesView() {
                   </thead>
                   <tbody className="divide-y divide-[var(--border-subtle)] font-mono">
                     {currentData.drivers.map((driver) => (
-                      <tr key={driver.id} className="hover:bg-[var(--bg-tertiary)]/50 transition-colors">
+                      <tr
+                        key={driver.id}
+                        onClick={() => setSelectedDriver(driver)}
+                        className="hover:bg-[var(--bg-tertiary)]/50 transition-colors cursor-pointer"
+                        title={`Click to view ${driver.name} dossier`}
+                      >
                         <td className="py-3 px-4 text-center font-bold">
                           <span className={`inline-flex w-6 h-6 items-center justify-center rounded text-xs ${
                             driver.position === 1 ? 'bg-amber-400 text-black font-black' :
@@ -769,6 +796,164 @@ export default function JuniorSeriesView() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Junior Driver Detail Modal */}
+      {mounted && selectedDriver && createPortal(
+        <div
+          className="fixed inset-0 overflow-y-auto"
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+          }}
+        >
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
+            onClick={() => setSelectedDriver(null)}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+            }}
+          />
+
+          {/* Centering wrapper */}
+          <div className="flex min-h-screen sm:min-h-full items-center justify-center p-3 sm:p-4 md:p-6 w-full">
+            <div
+              className="relative w-full max-w-xl shadow-2xl overflow-hidden z-10 flex flex-col animate-scale-in my-auto"
+              style={{
+                background: 'var(--bg-raised)',
+                border: '1px solid var(--border-dim)',
+                borderTop: `3px solid ${selectedDriver.f1AcademyColor || 'var(--red)'}`,
+                borderRadius: 'var(--r-lg)',
+                maxHeight: '90vh',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setSelectedDriver(null)}
+                className="absolute top-4 right-4 z-20 p-2 rounded-full bg-black/40 hover:bg-black/80 text-[var(--text-secondary)] hover:text-white border border-white/10 transition-colors cursor-pointer"
+                aria-label="Close driver details"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Scrollable Content Body */}
+              <div className="overflow-y-auto p-5 sm:p-6 space-y-5">
+                {/* Header Profile */}
+                <div className="flex items-center gap-4 pb-4 border-b border-[var(--border-dim)]">
+                  <JuniorDriverAvatar driver={selectedDriver} size="lg" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{selectedDriver.countryFlag}</span>
+                      <h3 className="font-hud font-black text-2xl uppercase tracking-tight text-[var(--text-primary)] truncate">
+                        {selectedDriver.name}
+                      </h3>
+                    </div>
+                    <div className="text-xs font-mono text-[var(--text-muted)] mt-0.5">
+                      #{selectedDriver.number} • {selectedDriver.code} • {selectedDriver.team}
+                    </div>
+                    {selectedDriver.f1Academy && (
+                      <div
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-hud font-bold uppercase mt-2"
+                        style={{
+                          background: `${selectedDriver.f1AcademyColor || '#E10600'}15`,
+                          color: selectedDriver.f1AcademyColor || '#E10600',
+                          border: `1px solid ${selectedDriver.f1AcademyColor || '#E10600'}30`,
+                        }}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selectedDriver.f1AcademyColor || '#E10600' }} />
+                        <span>{selectedDriver.f1Academy}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Season Performance Grid */}
+                <div className="grid grid-cols-4 gap-2 text-center p-3 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-dim)]">
+                  <div>
+                    <div className="text-[10px] font-hud uppercase tracking-wider text-[var(--text-muted)]">Championship</div>
+                    <div className="text-lg font-black font-mono text-[var(--text-primary)]">P{selectedDriver.position}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-hud uppercase tracking-wider text-[var(--text-muted)]">Points</div>
+                    <div className="text-lg font-black font-mono text-[var(--red)]">{selectedDriver.points}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-hud uppercase tracking-wider text-[var(--text-muted)]">Wins</div>
+                    <div className="text-lg font-black font-mono text-[var(--text-primary)]">{selectedDriver.wins}</div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-hud uppercase tracking-wider text-[var(--text-muted)]">Podiums</div>
+                    <div className="text-lg font-black font-mono text-[var(--text-primary)]">{selectedDriver.podiums}</div>
+                  </div>
+                </div>
+
+                {/* Super Licence Status */}
+                <div className="p-4 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-dim)] space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-hud font-bold uppercase text-[var(--text-secondary)]">FIA Super Licence Points</span>
+                    <span className="text-xs font-mono font-bold text-emerald-400">
+                      {selectedDriver.position === 1 ? '40 Pts (F1 Eligible)' : selectedDriver.position === 2 ? '40 Pts' : selectedDriver.position === 3 ? '40 Pts' : selectedDriver.position === 4 ? '30 Pts' : 'Eligible'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                    Competing in {currentData.seriesName} with equal-spec chassis. Top championship finishers earn direct points toward their mandatory 40-point FIA F1 Super Licence.
+                  </p>
+                </div>
+
+                {/* Biography */}
+                {selectedDriver.bio && (
+                  <div className="p-4 rounded-xl bg-[var(--bg-overlay)] border border-[var(--border-dim)] space-y-1">
+                    <div className="text-xs font-hud font-bold uppercase text-[var(--text-secondary)]">Driver Background</div>
+                    <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                      {selectedDriver.bio}
+                    </p>
+                  </div>
+                )}
+
+                {/* Car Spec quick reference */}
+                <div className="p-3 rounded-lg bg-[var(--bg-highlight)] border border-[var(--border-dim)] flex items-center justify-between text-xs font-mono">
+                  <span className="text-[var(--text-muted)]">Chassis: {currentData.carSpecs.model}</span>
+                  <span className="text-[var(--text-secondary)]">{currentData.carSpecs.power}</span>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                className="shrink-0 flex items-center justify-end"
+                style={{
+                  padding: '12px 20px',
+                  borderTop: '1px solid var(--border-dim)',
+                  background: 'var(--bg-overlay)',
+                }}
+              >
+                <button
+                  onClick={() => setSelectedDriver(null)}
+                  className="px-4 py-1.5 rounded text-xs font-hud font-bold uppercase tracking-wider cursor-pointer transition-colors"
+                  style={{
+                    background: 'var(--bg-highlight)',
+                    border: '1px solid var(--border-dim)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

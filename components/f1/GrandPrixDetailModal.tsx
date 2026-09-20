@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Race, RaceResult, DriverStanding, ConstructorStanding } from '@/lib/f1/types';
 import { CIRCUIT_EXTRAS, getTeamMeta, getDriverHeadshot } from '@/lib/f1/teams';
 import { fetchF1ComCircuitSpecs, F1ComCircuitSpecs } from '@/lib/f1/f1ComScraper';
@@ -52,6 +53,7 @@ export default function GrandPrixDetailModal({
   useLocalTime,
   onViewResults,
 }: GrandPrixDetailModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<ModalSubTab>('classification');
   const [scrapedSpecs, setScrapedSpecs] = useState<F1ComCircuitSpecs | null>(null);
   const [raceResults, setRaceResults] = useState<RaceResult[]>([]);
@@ -60,6 +62,10 @@ export default function GrandPrixDetailModal({
   const [roundConstructorStandings, setRoundConstructorStandings] = useState<ConstructorStanding[]>([]);
   const [weatherData, setWeatherData] = useState<any>(null);
   const [loadingData, setLoadingData] = useState<boolean>(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -128,7 +134,7 @@ export default function GrandPrixDetailModal({
     };
   }, [race, isOpen]);
 
-  if (!isOpen || !race) return null;
+  if (!isOpen || !race || !mounted) return null;
 
   const now = new Date().getTime();
   const raceIso = race.time ? `${race.date}T${race.time}` : `${race.date}T13:00:00Z`;
@@ -178,98 +184,176 @@ export default function GrandPrixDetailModal({
   const podiumWinners = raceResults.slice(0, 3);
   const poleSitter = qualifyingResults[0] || (raceResults.find((r) => r.grid === '1') || null);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto animate-fade-in">
-      {/* Dark Blur Backdrop */}
+  if (!isOpen || !race || !mounted) return null;
+
+  return createPortal(
+    /* ── Outer: scroll container ───────────────────────── */
+    <div
+      className="fixed inset-0 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+      }}
+    >
+      {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
         onClick={onClose}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
       />
 
-      {/* Modal Container */}
-      <div className="relative w-full max-w-4xl rounded-2xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] shadow-2xl overflow-hidden z-10 my-auto text-[var(--text-primary)] max-h-[92vh] flex flex-col">
-        {/* Top Accent Strip */}
-        <div className="h-1.5 w-full bg-gradient-to-r from-[var(--accent-f1-red)] via-amber-400 to-purple-500 shrink-0" />
+      {/* ── Inner: centering wrapper ─────────────────────── */}
+      <div className="flex min-h-screen sm:min-h-full items-center justify-center p-3 sm:p-4 md:p-6 w-full">
+        {/* Modal Panel */}
+        <div
+          className="relative w-full max-w-4xl shadow-2xl overflow-hidden z-10 text-[var(--text-primary)] flex flex-col animate-scale-in my-auto"
+          style={{
+            background: 'var(--bg-raised)',
+            border: '1px solid var(--border-dim)',
+            borderRadius: 'var(--r-lg)',
+            maxHeight: '92vh',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Kerb stripe at top */}
+          <div className="kerb-stripe w-full shrink-0" style={{ borderRadius: 'var(--r-lg) var(--r-lg) 0 0' }} />
 
-        {/* Modal Header */}
-        <div className="p-5 sm:p-6 pb-4 border-b border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/50 shrink-0 space-y-4">
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-2.5 py-0.5 rounded text-xs font-hud font-black uppercase tracking-wider bg-[var(--accent-f1-red)]/20 text-[var(--accent-f1-red)] border border-[var(--accent-f1-red)]/30">
-                  ROUND {race.round} OF {race.season}
-                </span>
-                {isPast ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 bg-emerald-950/30 px-2.5 py-0.5 rounded border border-emerald-800/40">
-                    <CheckCircle2 className="w-3 h-3" />
-                    OFFICIAL GRAND PRIX RESULT
+          {/* Modal Header */}
+          <div
+            className="shrink-0"
+            style={{
+              padding: '20px 24px 16px',
+              borderBottom: '1px solid var(--border-dim)',
+              background: 'var(--bg-overlay)',
+            }}
+          >
+            <div className="flex items-start justify-between gap-4" style={{ marginBottom: 12 }}>
+              <div>
+                <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: 8 }}>
+                  <span
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: 'var(--r-sm)',
+                      background: 'var(--red-subtle)',
+                      border: '1px solid rgba(225,6,0,0.30)',
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 800,
+                      fontSize: 11,
+                      letterSpacing: '0.12em',
+                      textTransform: 'uppercase',
+                      color: 'var(--red)',
+                    }}
+                  >
+                    ROUND {race.round} OF {race.season}
                   </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400 bg-amber-950/30 px-2.5 py-0.5 rounded border border-amber-800/40">
-                    <Clock className="w-3 h-3" />
-                    UPCOMING GRAND PRIX
-                  </span>
-                )}
+                  {isPast ? (
+                    <span className="inline-flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)', background: 'rgba(34,197,94,0.08)', padding: '3px 10px', borderRadius: 'var(--r-sm)', border: '1px solid rgba(34,197,94,0.25)' }}>
+                      <CheckCircle2 className="w-3 h-3" />
+                      OFFICIAL GRAND PRIX RESULT
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1" style={{ fontSize: 11, fontWeight: 600, color: 'var(--amber)', background: 'rgba(245,184,0,0.08)', padding: '3px 10px', borderRadius: 'var(--r-sm)', border: '1px solid rgba(245,184,0,0.25)' }}>
+                      <Clock className="w-3 h-3" />
+                      UPCOMING GRAND PRIX
+                    </span>
+                  )}
+                </div>
+
+                <h2
+                  style={{
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 900,
+                    fontSize: 'clamp(20px, 4vw, 32px)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '-0.01em',
+                    lineHeight: 0.95,
+                    color: 'var(--text-primary)',
+                    margin: 0,
+                  }}
+                >
+                  {race.raceName}
+                </h2>
+
+                <p className="flex items-center gap-1.5" style={{ marginTop: 6, fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-body)' }}>
+                  <MapPin style={{ width: 13, height: 13, color: 'var(--red)', flexShrink: 0 }} />
+                  {race.Circuit.circuitName} &bull; {race.Circuit.Location.locality}, {race.Circuit.Location.country}
+                </p>
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-hud font-black uppercase text-[var(--text-primary)] tracking-tight mt-1">
-                {race.raceName}
-              </h2>
-
-              <p className="text-xs text-[var(--text-secondary)] flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-[var(--accent-f1-red)]" />
-                <span>
-                  {race.Circuit.circuitName} • {race.Circuit.Location.locality},{' '}
-                  {race.Circuit.Location.country}
-                </span>
-              </p>
+              <button
+                onClick={onClose}
+                className="shrink-0 cursor-pointer transition-colors"
+                style={{
+                  padding: 8,
+                  borderRadius: 'var(--r-sm)',
+                  background: 'var(--bg-highlight)',
+                  border: '1px solid var(--border-dim)',
+                  color: 'var(--text-muted)',
+                }}
+                title="Close modal"
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-overlay)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-highlight)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <button
-              onClick={onClose}
-              className="p-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--border-hover)] text-[var(--text-muted)] hover:text-white transition-colors cursor-pointer shrink-0"
-              title="Close modal"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {/* Sub-Tab Navigation */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingTop: 12, borderTop: '1px solid var(--border-dim)' }}>
+              {[
+                { id: 'classification', label: 'Race Results', icon: Trophy },
+                { id: 'qualifying', label: 'Qualifying Grid', icon: Timer },
+                { id: 'standings', label: 'Round Standings', icon: Users },
+                { id: 'circuit', label: 'Circuit Telemetry', icon: Gauge },
+                { id: 'timetable', label: 'Schedule & Weather', icon: Calendar },
+              ].map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as ModalSubTab)}
+                    className="flex items-center gap-1.5 cursor-pointer transition-all"
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 'var(--r-sm)',
+                      background: isActive ? 'var(--red)' : 'var(--bg-highlight)',
+                      border: isActive ? 'none' : '1px solid var(--border-dim)',
+                      color: isActive ? '#fff' : 'var(--text-secondary)',
+                      fontFamily: 'var(--font-display)',
+                      fontWeight: 700,
+                      fontSize: 11,
+                      letterSpacing: '0.10em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    <Icon style={{ width: 12, height: 12, flexShrink: 0 }} />
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Sub-Tab Navigation Bar */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[var(--border-subtle)]">
-            {[
-              { id: 'classification', label: 'Race Results', icon: Trophy },
-              { id: 'qualifying', label: 'Qualifying Grid', icon: Timer },
-              { id: 'standings', label: 'Round Standings', icon: Users },
-              { id: 'circuit', label: 'Circuit Telemetry', icon: Gauge },
-              { id: 'timetable', label: 'Schedule & Weather', icon: Calendar },
-            ].map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as ModalSubTab)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md font-hud font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-[var(--accent-f1-red)] text-white shadow-md'
-                      : 'bg-[var(--bg-secondary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Modal Scrollable Body */}
-        <div className="p-5 sm:p-6 space-y-6 overflow-y-auto flex-1">
-          {/* ==================== SUB-TAB 1: RACE CLASSIFICATION & PODIUMS ==================== */}
-          {activeTab === 'classification' && (
-            <div className="space-y-6">
-              {/* Podium Highlight Cards */}
-              {podiumWinners.length > 0 && (
+          {/* Modal Scrollable Body */}
+          <div className="overflow-y-auto flex-1" style={{ padding: '20px 24px' }}>
+            {/* ==================== SUB-TAB 1: RACE CLASSIFICATION & PODIUMS ==================== */}
+            {activeTab === 'classification' && (
+              <div className="space-y-6">
+                {/* Podium Highlight Cards */}
+                {podiumWinners.length > 0 && (
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {podiumWinners.map((res, idx) => {
                     const teamMeta = getTeamMeta(res.Constructor?.constructorId || '');
@@ -544,37 +628,90 @@ export default function GrandPrixDetailModal({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Driver Championship Standings After Round */}
               <div className="space-y-3">
-                <h3 className="font-hud font-black text-xs uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
-                  <Trophy className="w-3.5 h-3.5 text-[var(--accent-f1-red)]" />
-                  <span>Driver Standings After Round {race.round}</span>
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-hud font-black text-xs uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
+                    <Trophy className="w-3.5 h-3.5 text-[var(--accent-f1-red)]" />
+                    <span>Driver Standings After Round {race.round}</span>
+                  </h3>
+                  <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                    {roundDriverStandings.length > 0 ? `Top ${Math.min(10, roundDriverStandings.length)}` : ''}
+                  </span>
+                </div>
 
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)] text-[10px] font-hud font-bold uppercase tracking-wider text-[var(--text-muted)]">
                         <tr>
-                          <th className="py-2 px-3 w-8 text-center">Pos</th>
-                          <th className="py-2 px-3">Driver</th>
-                          <th className="py-2 px-3 text-right pr-3">Points</th>
+                          <th className="py-2.5 px-3 w-10 text-center">Pos</th>
+                          <th className="py-2.5 px-3">Driver</th>
+                          <th className="py-2.5 px-3 text-right pr-4">Points</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--border-subtle)] font-mono">
-                        {roundDriverStandings.slice(0, 10).map((d) => (
-                          <tr key={d.Driver.driverId} className="hover:bg-[var(--bg-secondary)]/50">
-                            <td className="py-2 px-3 text-center font-bold text-[var(--text-muted)]">
-                              {d.position}
-                            </td>
-                            <td className="py-2 px-3 font-sans">
-                              <span className="font-bold text-[var(--text-primary)]">
-                                {d.Driver.givenName} {d.Driver.familyName}
-                              </span>
-                            </td>
-                            <td className="py-2 px-3 text-right pr-3 font-bold text-[var(--accent-f1-red)]">
-                              {d.points}
+                        {loadingData ? (
+                          [1, 2, 3, 4, 5].map((i) => (
+                            <tr key={i} className="animate-pulse">
+                              <td className="py-3 px-3 text-center text-[var(--text-muted)]">--</td>
+                              <td className="py-3 px-3">
+                                <div className="h-3 w-28 bg-[var(--bg-highlight)] rounded" />
+                              </td>
+                              <td className="py-3 px-3 text-right pr-4">
+                                <div className="h-3 w-8 bg-[var(--bg-highlight)] rounded ml-auto" />
+                              </td>
+                            </tr>
+                          ))
+                        ) : roundDriverStandings.length > 0 ? (
+                          roundDriverStandings.slice(0, 10).map((d) => {
+                            const constructorId = d.Constructors?.[0]?.constructorId || '';
+                            const teamMeta = getTeamMeta(constructorId);
+                            const posNum = parseInt(d.position, 10);
+                            return (
+                              <tr key={d.Driver.driverId} className="hover:bg-[var(--bg-secondary)]/50 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-bold font-mono">
+                                  <span
+                                    className={`inline-flex items-center justify-center w-5 h-5 rounded text-[11px] ${
+                                      posNum === 1
+                                        ? 'bg-amber-400 text-black font-black'
+                                        : posNum === 2
+                                        ? 'bg-slate-300 text-black font-black'
+                                        : posNum === 3
+                                        ? 'bg-amber-700 text-white font-black'
+                                        : 'text-[var(--text-muted)]'
+                                    }`}
+                                  >
+                                    {d.position}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-3 font-sans">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className="w-1.5 h-4 rounded-full shrink-0"
+                                      style={{ backgroundColor: teamMeta.color }}
+                                    />
+                                    <div>
+                                      <div className="font-bold text-[var(--text-primary)]">
+                                        {d.Driver.givenName} {d.Driver.familyName}
+                                      </div>
+                                      <div className="text-[10px] text-[var(--text-muted)]">
+                                        {d.Constructors?.[0]?.name || ''}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 text-right pr-4 font-bold text-[var(--accent-f1-red)] font-mono">
+                                  {d.points}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={3} className="py-6 px-4 text-center text-[var(--text-muted)] text-xs font-mono">
+                              Championship standings will be recorded after Round {race.round} classification.
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -583,37 +720,71 @@ export default function GrandPrixDetailModal({
 
               {/* Constructor Championship Standings After Round */}
               <div className="space-y-3">
-                <h3 className="font-hud font-black text-xs uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
-                  <Users className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Constructor Standings After Round {race.round}</span>
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-hud font-black text-xs uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-2">
+                    <Users className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Constructor Standings After Round {race.round}</span>
+                  </h3>
+                  <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                    {roundConstructorStandings.length > 0 ? `${roundConstructorStandings.length} Teams` : ''}
+                  </span>
+                </div>
 
                 <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-primary)] overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs">
                       <thead className="bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)] text-[10px] font-hud font-bold uppercase tracking-wider text-[var(--text-muted)]">
                         <tr>
-                          <th className="py-2 px-3 w-8 text-center">Pos</th>
-                          <th className="py-2 px-3">Constructor</th>
-                          <th className="py-2 px-3 text-right pr-3">Points</th>
+                          <th className="py-2.5 px-3 w-10 text-center">Pos</th>
+                          <th className="py-2.5 px-3">Constructor</th>
+                          <th className="py-2.5 px-3 text-right pr-4">Points</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[var(--border-subtle)] font-mono">
-                        {roundConstructorStandings.map((c) => (
-                          <tr key={c.Constructor.constructorId} className="hover:bg-[var(--bg-secondary)]/50">
-                            <td className="py-2 px-3 text-center font-bold text-[var(--text-muted)]">
-                              {c.position}
-                            </td>
-                            <td className="py-2 px-3 font-sans">
-                              <span className="font-bold text-[var(--text-primary)]">
-                                {c.Constructor.name}
-                              </span>
-                            </td>
-                            <td className="py-2 px-3 text-right pr-3 font-bold text-[var(--text-primary)]">
-                              {c.points}
+                        {loadingData ? (
+                          [1, 2, 3, 4, 5].map((i) => (
+                            <tr key={i} className="animate-pulse">
+                              <td className="py-3 px-3 text-center text-[var(--text-muted)]">--</td>
+                              <td className="py-3 px-3">
+                                <div className="h-3 w-24 bg-[var(--bg-highlight)] rounded" />
+                              </td>
+                              <td className="py-3 px-3 text-right pr-4">
+                                <div className="h-3 w-8 bg-[var(--bg-highlight)] rounded ml-auto" />
+                              </td>
+                            </tr>
+                          ))
+                        ) : roundConstructorStandings.length > 0 ? (
+                          roundConstructorStandings.map((c) => {
+                            const teamMeta = getTeamMeta(c.Constructor.constructorId);
+                            return (
+                              <tr key={c.Constructor.constructorId} className="hover:bg-[var(--bg-secondary)]/50 transition-colors">
+                                <td className="py-2.5 px-3 text-center font-bold text-[var(--text-muted)] font-mono">
+                                  P{c.position}
+                                </td>
+                                <td className="py-2.5 px-3 font-sans">
+                                  <div className="flex items-center gap-2">
+                                    <span
+                                      className="w-1.5 h-4 rounded-full shrink-0"
+                                      style={{ backgroundColor: teamMeta.color }}
+                                    />
+                                    <span className="font-bold text-[var(--text-primary)]">
+                                      {c.Constructor.name}
+                                    </span>
+                                  </div>
+                                </td>
+                                <td className="py-2.5 px-3 text-right pr-4 font-bold text-[var(--text-primary)] font-mono">
+                                  {c.points}
+                                </td>
+                              </tr>
+                            );
+                          })
+                        ) : (
+                          <tr>
+                            <td colSpan={3} className="py-6 px-4 text-center text-[var(--text-muted)] text-xs font-mono">
+                              Constructor standings will be recorded after Round {race.round} classification.
                             </td>
                           </tr>
-                        ))}
+                        )}
                       </tbody>
                     </table>
                   </div>
@@ -825,7 +996,14 @@ export default function GrandPrixDetailModal({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 sm:p-5 border-t border-[var(--border-subtle)] bg-[var(--bg-tertiary)]/70 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
+        <div
+          className="shrink-0 flex flex-col sm:flex-row items-center justify-between gap-3"
+          style={{
+            padding: '12px 24px',
+            borderTop: '1px solid var(--border-dim)',
+            background: 'var(--bg-overlay)',
+          }}
+        >
           <div className="text-xs text-[var(--text-muted)] font-mono">
             Round {race.round} • FIA Formula 1 World Championship
           </div>
@@ -837,23 +1015,57 @@ export default function GrandPrixDetailModal({
                   onClose();
                   onViewResults(race.round);
                 }}
-                className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-[var(--accent-f1-red)] text-white font-hud font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer shadow-md"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 cursor-pointer transition-opacity"
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: 'var(--r-sm)',
+                  background: 'var(--red)',
+                  color: '#fff',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  fontSize: 12,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  border: 'none',
+                }}
               >
                 <Trophy className="w-3.5 h-3.5" />
-                <span>GO TO FULL RESULTS TAB</span>
+                <span>Go to Full Results</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
 
             <button
               onClick={onClose}
-              className="flex-1 sm:flex-none px-4 py-2 rounded-lg bg-[var(--bg-secondary)] hover:bg-[var(--border-hover)] border border-[var(--border-subtle)] text-[var(--text-secondary)] hover:text-white font-hud font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+              className="flex-1 sm:flex-none flex items-center justify-center cursor-pointer transition-colors"
+              style={{
+                padding: '7px 14px',
+                borderRadius: 'var(--r-sm)',
+                background: 'var(--bg-highlight)',
+                border: '1px solid var(--border-dim)',
+                color: 'var(--text-secondary)',
+                fontFamily: 'var(--font-display)',
+                fontWeight: 700,
+                fontSize: 12,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = 'var(--text-primary)';
+                e.currentTarget.style.borderColor = 'var(--border-mid)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-secondary)';
+                e.currentTarget.style.borderColor = 'var(--border-dim)';
+              }}
             >
-              CLOSE DOSSIER
+              Close
             </button>
           </div>
         </div>
       </div>
     </div>
-  );
+  </div>,
+  document.body
+);
 }

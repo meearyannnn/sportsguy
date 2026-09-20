@@ -1,6 +1,5 @@
-'use client';
-
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { getTeamMeta, DRIVER_DETAILS } from '@/lib/f1/teams';
 import { ConstructorStanding } from '@/lib/f1/types';
 import { getSeason2026Metrics } from '@/lib/f1/season2026Data';
@@ -36,7 +35,12 @@ export default function ConstructorDetailModal({
   onSelectDriver,
   constructorStandings = [],
 }: ConstructorDetailModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [liveStandings, setLiveStandings] = useState<ConstructorStanding[]>(constructorStandings);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -59,60 +63,46 @@ export default function ConstructorDetailModal({
       setLiveStandings(constructorStandings);
     } else if (isOpen) {
       fetch('/api/f1/standings?year=2026')
-        .then((r) => (r.ok ? r.json() : null))
+        .then((res) => res.json())
         .then((data) => {
-          if (data?.constructors?.length > 0) {
-            const mapped: ConstructorStanding[] = data.constructors.map((c: any) => ({
-              position: String(c.pos),
-              positionText: String(c.pos),
-              points: String(c.points),
-              wins: '0',
-              Constructor: {
-                constructorId: c.team.toLowerCase().replace(/[\s-]+/g, '_'),
-                name: c.team,
-                nationality: '',
-              },
-            }));
-            setLiveStandings(mapped);
+          if (data.standings && Array.isArray(data.standings) && data.standings.length > 0) {
+            setLiveStandings(data.standings);
           }
         })
         .catch(() => {});
     }
-  }, [constructorStandings, isOpen]);
+  }, [isOpen, constructorStandings]);
 
-  if (!isOpen || !constructorId) return null;
+  if (!isOpen || !constructorId || !mounted) return null;
 
   const team = getTeamMeta(constructorId);
-  const activeStandings = liveStandings.length > 0 ? liveStandings : constructorStandings;
-  const standing = activeStandings.find(
-    (s) =>
-      s.Constructor.constructorId.toLowerCase() === constructorId.toLowerCase() ||
-      getTeamMeta(s.Constructor.constructorId).id === team.id ||
-      s.Constructor.name.toLowerCase().includes(team.name.toLowerCase()) ||
-      team.name.toLowerCase().includes(s.Constructor.name.toLowerCase())
-  );
+  if (!team) return null;
 
-  const teamDriverWins = team.drivers.reduce((acc, driverId) => {
-    const metric = getSeason2026Metrics(driverId);
-    return acc + (metric?.seasonWins || 0);
-  }, 0);
+  // Find this constructor's official standing if available
+  const standing = liveStandings.find((s) => s.Constructor.constructorId === team.id);
+
+  // Fallback points and wins from drivers if standing is 0
   const teamDriverPoints = team.drivers.reduce((acc, driverId) => {
     const metric = getSeason2026Metrics(driverId);
     return acc + (metric?.seasonPoints || 0);
   }, 0);
+  const teamDriverWins = team.drivers.reduce((acc, driverId) => {
+    const metric = getSeason2026Metrics(driverId);
+    return acc + (metric?.seasonWins || 0);
+  }, 0);
 
+  // 2026 Canonical constructor rankings (Ferrari / Mercedes / McLaren / Red Bull fight)
   const CONSTRUCTOR_RANKS_2026: Record<string, { rank: number; points: number; wins: number }> = {
-    mercedes: { rank: 1, points: 468, wins: 9 },
-    ferrari: { rank: 2, points: 340, wins: 3 },
-    mclaren: { rank: 3, points: 306, wins: 2 },
-    red_bull: { rank: 4, points: 216, wins: 0 },
-    rb: { rank: 5, points: 62, wins: 0 },
-    alpine: { rank: 6, points: 51, wins: 0 },
-    haas: { rank: 7, points: 40, wins: 0 },
-    aston_martin: { rank: 8, points: 30, wins: 0 },
-    sauber: { rank: 9, points: 22, wins: 0 },
-    audi: { rank: 9, points: 22, wins: 0 },
-    williams: { rank: 10, points: 16, wins: 0 },
+    ferrari: { rank: 1, points: 215, wins: 3 },
+    mercedes: { rank: 2, points: 198, wins: 2 },
+    mclaren: { rank: 3, points: 182, wins: 2 },
+    red_bull: { rank: 4, points: 165, wins: 1 },
+    aston_martin: { rank: 5, points: 74, wins: 0 },
+    alpine: { rank: 6, points: 48, wins: 0 },
+    rb: { rank: 7, points: 34, wins: 0 },
+    williams: { rank: 8, points: 28, wins: 0 },
+    haas: { rank: 9, points: 22, wins: 0 },
+    audi: { rank: 10, points: 6, wins: 0 },
     cadillac: { rank: 11, points: 0, wins: 0 },
   };
 
@@ -121,21 +111,47 @@ export default function ConstructorDetailModal({
   const displayPoints = standing?.points && parseInt(standing.points, 10) > 0 ? standing.points : String(defaultMeta.points);
   const displayWins = standing?.wins && parseInt(standing.wins, 10) > 0 ? standing.wins : String(defaultMeta.wins);
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 overflow-y-auto animate-fadeIn">
+  return createPortal(
+    <div
+      className="fixed inset-0 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+      }}
+    >
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/80 backdrop-blur-md transition-opacity"
         onClick={onClose}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
       />
 
-      {/* Modal Container */}
-      <div className="relative w-full max-w-4xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl shadow-2xl overflow-hidden z-10 flex flex-col max-h-[90vh] my-auto">
-        {/* Top Livery Accent Bar */}
+      {/* Centering wrapper */}
+      <div className="flex min-h-screen sm:min-h-full items-center justify-center p-3 sm:p-4 md:p-6 w-full">
+        {/* Modal Panel */}
         <div
-          className="h-2 w-full shrink-0"
-          style={{ backgroundColor: team.color }}
-        />
+          className="relative w-full max-w-4xl shadow-2xl overflow-hidden z-10 flex flex-col animate-scale-in my-auto"
+          style={{
+            background: 'var(--bg-raised)',
+            border: '1px solid var(--border-dim)',
+            borderTop: `3px solid ${team.color}`,
+            borderRadius: 'var(--r-lg)',
+            maxHeight: '90vh',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
 
         {/* Close Button */}
         <button
@@ -390,8 +406,10 @@ export default function ConstructorDetailModal({
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

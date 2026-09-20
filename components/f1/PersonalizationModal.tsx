@@ -1,6 +1,5 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { F1_TEAMS, DRIVER_DETAILS, getTeamMeta } from '@/lib/f1/teams';
 import { DriverStanding } from '@/lib/f1/types';
 import {
@@ -31,19 +30,29 @@ export default function PersonalizationModal({
   standings,
   onThemeApplied,
 }: PersonalizationModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [favoriteDriver, setFavoriteDriver] = useState<string>('norris');
   const [favoriteTeam, setFavoriteTeam] = useState<string>('mclaren');
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (isOpen) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
       const prefs = loadUserPreferences();
       setFavoriteDriver(prefs.favoriteDriverId || 'norris');
       setFavoriteTeam(prefs.favoriteTeamId || 'mclaren');
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const currentTeamMeta = getTeamMeta(favoriteTeam);
 
@@ -61,15 +70,36 @@ export default function PersonalizationModal({
     }, 900);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+  return createPortal(
+    <div
+      className="fixed inset-0 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 9999,
+      }}
+    >
       {/* Dark Backdrop */}
       <div
-        className="fixed inset-0 bg-black/85 transition-opacity"
+        className="fixed inset-0 bg-black/85 backdrop-blur-md transition-opacity"
         onClick={onClose}
-      ></div>
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+      />
 
-      <div className="relative w-full max-w-xl rounded bg-[var(--bg-secondary)] border border-[var(--border-subtle)] shadow-2xl overflow-hidden z-10 my-auto text-[var(--text-primary)]">
+      {/* Centering wrapper */}
+      <div className="flex min-h-screen sm:min-h-full items-center justify-center p-3 sm:p-4 w-full">
+        <div className="relative w-full max-w-xl rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)] shadow-2xl overflow-hidden z-10 text-[var(--text-primary)] animate-scale-in my-auto">
         {/* Top Accent Strip */}
         <div
           className="h-1 w-full transition-all"
@@ -221,5 +251,8 @@ export default function PersonalizationModal({
         </div>
       </div>
     </div>
-  );
+  </div>,
+  document.body
+);
 }
+
