@@ -41,7 +41,12 @@ export type NavTab =
   | 'junior'
   | 'testing'
   | 'pitcrew'
-  | 'about';
+  | 'about'
+  | 'battle'
+  | 'fantasy'
+  | 'predict'
+  | 'tyres'
+  | 'timeline';
 
 interface NavbarProps {
   activeTab: NavTab;
@@ -111,6 +116,11 @@ export default function Navbar({
   }, []);
 
   const secondaryTabs: Array<{ id: NavTab; label: string; icon: any }> = [
+    { id: 'battle',   label: 'Battle Center',             icon: Zap },
+    { id: 'predict',  label: 'Prediction Engine',         icon: Calculator },
+    { id: 'fantasy',  label: 'Fantasy F1',                icon: Trophy },
+    { id: 'tyres',    label: 'Tire Strategy',             icon: Gauge },
+    { id: 'timeline', label: 'Championship Timeline',     icon: Radio },
     { id: 'junior',   label: 'Feeder Series (F2 / F3)',  icon: GraduationCap },
     { id: 'news',     label: 'News Wire',                 icon: Newspaper },
     { id: 'pitcrew',  label: 'Pit Crew Championship',     icon: Wrench },

@@ -127,3 +127,24 @@ export async function getSessionLaps(
     return [];
   }
 }
+
+export interface OpenF1Stint {
+  session_key: number;
+  meeting_key: number;
+  driver_number: number;
+  stint_number: number;
+  lap_start: number;
+  lap_end: number;
+  compound: string;
+  tyre_age_at_start: number;
+}
+
+export async function getSessionStints(sessionKey: number | string): Promise<OpenF1Stint[]> {
+  try {
+    const stints = await fetchOpenF1<OpenF1Stint[]>(`stints?session_key=${sessionKey}`, 60000);
+    return Array.isArray(stints) ? stints : [];
+  } catch (err) {
+    console.error('Failed to get stints from OpenF1:', err);
+    return [];
+  }
+}

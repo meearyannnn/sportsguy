@@ -54,6 +54,21 @@ const PersonalizationModal = dynamic(() => import('@/components/f1/Personalizati
 const DriverProfileModal = dynamic(() => import('@/components/f1/DriverProfileModal'));
 const ConstructorDetailModal = dynamic(() => import('@/components/f1/ConstructorDetailModal'));
 const GlanceMode = dynamic(() => import('@/components/f1/GlanceMode'));
+const BattleCenter = dynamic(() => import('@/components/f1/BattleCenter'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const TireStrategyView = dynamic(() => import('@/components/f1/TireStrategyView'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const FantasyMode = dynamic(() => import('@/components/f1/FantasyMode'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const PredictionEngine = dynamic(() => import('@/components/f1/PredictionEngine'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
+const ChampionshipTimeline = dynamic(() => import('@/components/f1/ChampionshipTimeline'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
 import {
   getCalendar,
   getDriverStandings,
@@ -141,7 +156,7 @@ export default function ApexHome() {
       const tabParam = urlParams.get('tab') as NavTab;
       if (
         tabParam &&
-        ['hub', 'calendar', 'standings', 'results', 'paddock', 'analytics', 'stories', 'archive', 'live', 'news', 'junior', 'testing', 'pitcrew', 'about'].includes(tabParam)
+        ['hub', 'calendar', 'standings', 'results', 'paddock', 'analytics', 'stories', 'archive', 'live', 'news', 'junior', 'testing', 'pitcrew', 'about', 'battle', 'fantasy', 'predict', 'tyres', 'timeline'].includes(tabParam)
       ) {
         setActiveTab(tabParam);
       }
@@ -642,6 +657,51 @@ export default function ApexHome() {
             {/* TAB: WHY THIS LOOKS LIKE THIS (DESIGN MANIFESTO) */}
             {activeTab === 'about' && (
               <DesignManifestoView />
+            )}
+
+            {/* TAB: BATTLE CENTER — DRIVER VS DRIVER */}
+            {activeTab === 'battle' && (
+              <BattleCenter driverStandings={driverStandings} />
+            )}
+
+            {/* TAB: TIRE STRATEGY VISUALIZER */}
+            {activeTab === 'tyres' && (
+              <TireStrategyView
+                currentRace={recentRace}
+                results={raceResults}
+                availableRaces={calendar}
+                selectedRound={selectedRound}
+                selectedSeason={selectedSeason}
+                onSelectRound={handleSelectRound}
+                onSelectSeason={handleSelectSeason}
+              />
+            )}
+
+            {/* TAB: FANTASY F1 MODE */}
+            {activeTab === 'fantasy' && (
+              <FantasyMode
+                driverStandings={driverStandings}
+                constructorStandings={constructorStandings}
+                calendar={calendar}
+                recentRace={recentRace}
+                raceResults={raceResults}
+                selectedSeason={selectedSeason}
+                selectedRound={selectedRound}
+              />
+            )}
+
+            {/* TAB: PREDICTION ENGINE */}
+            {activeTab === 'predict' && (
+              <PredictionEngine
+                driverStandings={driverStandings}
+                nextRace={nextRace}
+                calendar={calendar}
+              />
+            )}
+
+            {/* TAB: CHAMPIONSHIP TIMELINE */}
+            {activeTab === 'timeline' && (
+              <ChampionshipTimeline season={selectedSeason} />
             )}
           </>
         )}

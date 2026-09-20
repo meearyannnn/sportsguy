@@ -263,3 +263,77 @@ export async function getAllConstructors(
     return [];
   }
 }
+
+export async function getDriverStandingsBySeason(
+  season: string | number,
+  driverId?: string
+): Promise<DriverStanding | null> {
+  const targetSeason = resolveSeason(season);
+  try {
+    const url = driverId
+      ? `${JOLPICA_BASE}/${targetSeason}/drivers/${driverId}/driverstandings.json`
+      : `${JOLPICA_BASE}/${targetSeason}/driverstandings.json?limit=30`;
+    const res = await fetchWithCache<JolpicaResponse<DriverStanding>>(url);
+    const lists = res?.MRData?.StandingsTable?.StandingsLists;
+    if (lists && lists.length > 0 && lists[0].DriverStandings) {
+      if (driverId) {
+        return (
+          lists[0].DriverStandings.find(
+            (d) =>
+              d.Driver.driverId.toLowerCase() === driverId.toLowerCase() ||
+              d.Driver.code?.toLowerCase() === driverId.toLowerCase()
+          ) || lists[0].DriverStandings[0] || null
+        );
+      }
+      return lists[0].DriverStandings[0] || null;
+    }
+    return null;
+  } catch (err) {
+    console.error(`Failed to get driver standings for ${season} driver ${driverId}:`, err);
+    return null;
+  }
+}
+
+export async function getDriverRaceResults(
+  season: string | number,
+  driverId: string
+): Promise<RaceResult[]> {
+  const targetSeason = resolveSeason(season);
+  try {
+    const res = await fetchWithCache<JolpicaResponse<RaceResult>>(
+      `${JOLPICA_BASE}/${targetSeason}/drivers/${driverId}/results.json?limit=35`
+    );
+    const races = res?.MRData?.RaceTable?.Races || [];
+    const results: RaceResult[] = [];
+    races.forEach((r) => {
+      if (r.Results) {
+        results.push(...r.Results);
+      }
+    });
+    return results;
+  } catch (err) {
+    console.error(`Failed to get race results for ${season} driver ${driverId}:`, err);
+    return [];
+  }
+}
+
+export async function getLapTimes(
+  season: string | number = 'current',
+  round: string | number = 'last',
+  lap: string | number = 1
+): Promise<any[]> {
+  const targetSeason = resolveSeason(season);
+  try {
+    const res = await fetchWithCache<any>(
+      `${JOLPICA_BASE}/${targetSeason}/${round}/laps/${lap}.json?limit=30`
+    );
+    const races = res?.MRData?.RaceTable?.Races;
+    if (races && races.length > 0 && races[0].Laps && races[0].Laps.length > 0) {
+      return races[0].Laps[0].Timings || [];
+    }
+    return [];
+  } catch (err) {
+    console.error(`Failed to get lap times:`, err);
+    return [];
+  }
+}
