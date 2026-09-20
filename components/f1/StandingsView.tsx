@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DriverStanding, ConstructorStanding } from '@/lib/f1/types';
-import { getTeamMeta, DRIVER_DETAILS, getNationalityFlag } from '@/lib/f1/teams';
+import { getTeamMeta, DRIVER_DETAILS, getDriverDetails, getNationalityFlag } from '@/lib/f1/teams';
 import PaceTrace from '@/components/f1/PaceTrace';
 import DriverAvatar from '@/components/f1/DriverAvatar';
 import DriverIdentityCard from '@/components/f1/DriverIdentityCard';
@@ -13,87 +13,81 @@ import { ChevronDown, ChevronUp, ChevronRight } from 'lucide-react';
 interface StandingsViewProps {
   driverStandings: DriverStanding[];
   constructorStandings: ConstructorStanding[];
-  season?: string;
   onSelectDriver?: (driverId: string) => void;
   onSelectConstructor?: (constructorId: string) => void;
+  onSelectSeason?: (season: string) => void;
 }
 
 export default function StandingsView({
   driverStandings,
   constructorStandings,
-  season = '2026',
   onSelectDriver,
   onSelectConstructor,
+  onSelectSeason,
 }: StandingsViewProps) {
   const [tab, setTab] = useState<'drivers' | 'constructors'>('drivers');
+  const [selectedSeason, setSelectedSeason] = useState<string>('2026');
   const [expandedDriverId, setExpandedDriverId] = useState<string | null>(null);
-  const [expandedConstructorId, setExpandedConstructorId] = useState<string | null>(null);
 
   // Max points for bar scaling
-  const maxDriverPoints = driverStandings.length > 0 ? parseFloat(driverStandings[0].points) || 1 : 1;
-  const maxConstructorPoints =
-    constructorStandings.length > 0 ? parseFloat(constructorStandings[0].points) || 1 : 1;
+  const maxDriverPoints = parseFloat(driverStandings[0]?.points || '1') || 1;
+  const maxConstructorPoints = parseFloat(constructorStandings[0]?.points || '1') || 1;
+
+  const handleSeasonChange = (year: string) => {
+    setSelectedSeason(year);
+    if (onSelectSeason) onSelectSeason(year);
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Precision Header & Timing Segment Control */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-subtle)]">
+    <div className="space-y-6">
+      {/* Header with Switcher and Season Selector */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-subtle)]">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="font-hud font-black text-xs uppercase tracking-widest text-[var(--accent-f1-red)]">
-              FIA OFFICIAL CLASSIFICATION
-            </span>
-            <span className="text-[var(--text-muted)] text-xs">•</span>
-            <span className="text-xs font-mono-num text-[var(--text-muted)]">
-              {season} WORLD CHAMPIONSHIP
-            </span>
-            <span className="text-[var(--text-muted)] text-xs hidden sm:inline">•</span>
-            <FreshnessBadge
-              cadence="periodic"
-              className="hidden sm:inline-flex"
-            />
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black font-hud tracking-tight uppercase text-[var(--text-primary)] mt-0.5">
+          <h2 className="text-xl sm:text-2xl font-black font-hud tracking-tight uppercase text-[var(--text-primary)]">
             {tab === 'drivers' ? 'Drivers Championship' : 'Constructors Championship'}
           </h2>
+          <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+            Official FIA Formula 1 World Championship Standings
+          </p>
         </div>
 
-        {/* Tab Switcher: Segmented Flat Control */}
-        <div className="flex items-center border border-[var(--border-subtle)] rounded p-0.5 bg-[var(--bg-secondary)]">
-          <button
-            onClick={() => setTab('drivers')}
-            className={`px-3 py-1 rounded text-xs font-hud font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-              tab === 'drivers'
-                ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border-b-2 border-[var(--accent-f1-red)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            Drivers
-          </button>
-          <button
-            onClick={() => setTab('constructors')}
-            className={`px-3 py-1 rounded text-xs font-hud font-bold uppercase tracking-wider transition-colors cursor-pointer ${
-              tab === 'constructors'
-                ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] border-b-2 border-[var(--accent-f1-red)]'
-                : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
-          >
-            Constructors
-          </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* View Switcher */}
+          <div className="flex items-center gap-1 bg-[var(--bg-tertiary)] p-1 rounded-xl border border-[var(--border-subtle)] text-xs font-hud font-bold uppercase">
+            <button
+              onClick={() => setTab('drivers')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                tab === 'drivers'
+                  ? 'bg-[var(--accent-f1-red)] text-white shadow-md shadow-red-950/40'
+                  : 'text-[var(--text-secondary)] hover:text-white'
+              }`}
+            >
+              Drivers
+            </button>
+            <button
+              onClick={() => setTab('constructors')}
+              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                tab === 'constructors'
+                  ? 'bg-[var(--accent-f1-red)] text-white shadow-md shadow-red-950/40'
+                  : 'text-[var(--text-secondary)] hover:text-white'
+              }`}
+            >
+              Constructors
+            </button>
+          </div>
         </div>
       </div>
 
 
       {/* DRIVERS STANDINGS TABLE */}
       {tab === 'drivers' ? (
-        <div className="border border-[var(--border-subtle)] rounded bg-[var(--bg-secondary)] divide-y divide-[var(--border-subtle)] overflow-hidden">
-          {/* Table Header Bar */}
-          <div className="grid grid-cols-12 gap-2 px-3 py-2.5 bg-[var(--bg-primary)] text-[10px] font-hud font-bold uppercase tracking-wider text-[var(--text-muted)] select-none">
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-secondary)] overflow-hidden shadow-xl">
+          {/* Table Header Row */}
+          <div className="grid grid-cols-12 gap-2 px-3 py-2.5 bg-[var(--bg-tertiary)] border-b border-[var(--border-subtle)] text-[10px] font-hud font-bold uppercase tracking-wider text-[var(--text-muted)]">
             <div className="col-span-2 sm:col-span-1 text-center">POS</div>
-            <div className="col-span-6 sm:col-span-5">DRIVER / TEAM</div>
-            <div className="col-span-2 hidden sm:block text-center">FORM</div>
-            <div className="col-span-2 hidden sm:block text-right">GAP / WINS</div>
-            <div className="col-span-4 sm:col-span-2 text-right pr-2">POINTS</div>
+            <div className="col-span-6 sm:col-span-5">DRIVER / CONSTRUCTOR</div>
+            <div className="col-span-4 sm:col-span-4 text-right pr-2">PTS • GAP</div>
+            <div className="hidden sm:block sm:col-span-2 text-right">PACE PROFILE</div>
           </div>
 
           {/* Rows */}
@@ -102,12 +96,13 @@ export default function StandingsView({
               ? getTeamMeta(standing.Constructors[0].constructorId)
               : getTeamMeta('ferrari');
             const driverId = standing.Driver.driverId;
-            const extra = DRIVER_DETAILS[driverId];
+            const extra = getDriverDetails(driverId);
             const points = parseFloat(standing.points) || 0;
             const gapToLeader = index === 0 ? 0 : points - maxDriverPoints;
             const percentOfLeader = Math.max(4, (points / maxDriverPoints) * 100);
             const isP1 = index === 0;
             const isExpanded = expandedDriverId === driverId;
+            const driverNumber = extra?.number || (standing.Driver.permanentNumber ? parseInt(standing.Driver.permanentNumber, 10) : undefined) || 99;
 
             return (
               <div key={standing.Driver.driverId} className="flex flex-col border-b border-[var(--border-subtle)] last:border-b-0">
@@ -138,7 +133,7 @@ export default function StandingsView({
                       className="text-[9px] font-bold px-1 rounded sm:hidden"
                       style={{ color: team.color, backgroundColor: `${team.color}15` }}
                     >
-                      #{extra?.number || standing.Driver.permanentNumber || standing.position}
+                      #{driverNumber}
                     </span>
                   </div>
 
@@ -147,7 +142,7 @@ export default function StandingsView({
                     <DriverAvatar
                       driverId={driverId}
                       driverName={`${standing.Driver.givenName} ${standing.Driver.familyName}`}
-                      permanentNumber={extra?.number || standing.position}
+                      permanentNumber={driverNumber}
                       teamColor={team.color}
                       size="sm"
                       mode="photo"

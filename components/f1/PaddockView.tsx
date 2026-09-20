@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DriverStanding, ConstructorStanding } from '@/lib/f1/types';
-import { F1_TEAMS, DRIVER_DETAILS, getTeamMeta } from '@/lib/f1/teams';
+import { F1_TEAMS, DRIVER_DETAILS, getTeamMeta, getDriverDetails } from '@/lib/f1/teams';
 import {
   Users,
   Swords,
@@ -55,17 +55,17 @@ export default function PaddockView({
     ? getTeamMeta(standingB.Constructors[0].constructorId)
     : getTeamMeta('mclaren');
 
-  const metaA = DRIVER_DETAILS[standingA?.Driver.driverId || ''] || {
-    number: 1,
-    code: 'VER',
+  const metaA = getDriverDetails(standingA?.Driver.driverId || '') || {
+    number: standingA?.Driver.permanentNumber ? parseInt(standingA.Driver.permanentNumber, 10) : 1,
+    code: standingA?.Driver.code || 'VER',
     countryFlag: '🇳🇱',
     worldTitles: 4,
     bio: 'Formula 1 elite champion.',
   };
 
-  const metaB = DRIVER_DETAILS[standingB?.Driver.driverId || ''] || {
-    number: 4,
-    code: 'NOR',
+  const metaB = getDriverDetails(standingB?.Driver.driverId || '') || {
+    number: standingB?.Driver.permanentNumber ? parseInt(standingB.Driver.permanentNumber, 10) : 4,
+    code: standingB?.Driver.code || 'NOR',
     countryFlag: '🇬🇧',
     worldTitles: 0,
     bio: 'Championship contender with blistering pace.',
@@ -498,11 +498,12 @@ export default function PaddockView({
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {driverStandings.map((s) => {
             const team = s.Constructors[0] ? getTeamMeta(s.Constructors[0].constructorId) : getTeamMeta('ferrari');
-            const meta = DRIVER_DETAILS[s.Driver.driverId] || {
-              number: s.position,
+            const meta = getDriverDetails(s.Driver.driverId) || {
+              number: s.Driver.permanentNumber ? parseInt(s.Driver.permanentNumber, 10) : 99,
               code: s.Driver.code || 'DRV',
               worldTitles: 0,
             };
+            const driverNumber = meta.number || (s.Driver.permanentNumber ? parseInt(s.Driver.permanentNumber, 10) : 99);
 
             const isLeaderP1 = s.position === '1';
 
@@ -525,7 +526,7 @@ export default function PaddockView({
                     <DriverAvatar
                       driverId={s.Driver.driverId}
                       driverName={`${s.Driver.givenName} ${s.Driver.familyName}`}
-                      permanentNumber={meta.number}
+                      permanentNumber={driverNumber}
                       teamColor={team.color}
                       size="md"
                       mode="photo"
@@ -550,7 +551,7 @@ export default function PaddockView({
                       backgroundColor: `${team.color}15`,
                     }}
                   >
-                    #{meta.number}
+                    #{driverNumber}
                   </span>
                 </div>
 
