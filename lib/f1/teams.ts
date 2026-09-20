@@ -172,20 +172,39 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
     carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/haasf1team/2026haasf1teamcarright.webp',
     logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/haasf1team/2026haasf1teamlogowhite.webp',
   },
-  sauber: {
-    id: 'sauber',
-    name: 'Kick Sauber',
-    fullName: 'Stake F1 Team Kick Sauber',
-    color: '#52E252',
-    secondaryColor: '#000000',
-    textColor: '#0A0A0F',
-    accentGlow: 'rgba(82, 226, 82, 0.4)',
+  audi: {
+    id: 'audi',
+    name: 'Audi',
+    fullName: 'Audi Formula 1 Team',
+    color: '#E21B23',
+    secondaryColor: '#C0C0C0',
+    textColor: '#FFFFFF',
+    accentGlow: 'rgba(226, 27, 35, 0.4)',
     powerUnit: 'Audi',
-    base: 'Hinwil, Switzerland',
+    base: 'Neuburg an der Donau / Hinwil',
     teamPrincipal: 'Jonathan Wheatley',
-    technicalChief: 'James Key',
-    chassis: 'C46',
-    firstEntry: '1993',
+    technicalChief: 'Mattia Binotto',
+    chassis: 'R26',
+    firstEntry: '2026',
+    championships: 0,
+    drivers: ['hulkenberg', 'bortoleto'],
+    carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/audi/2026audicarright.webp',
+    logoImageUrl: 'https://media.formula1.com/image/upload/c_lfill,w_120/q_auto/v1740000001/common/f1/2026/audi/2026audilogowhite.webp',
+  },
+  sauber: {
+    id: 'audi',
+    name: 'Audi',
+    fullName: 'Audi Formula 1 Team',
+    color: '#E21B23',
+    secondaryColor: '#C0C0C0',
+    textColor: '#FFFFFF',
+    accentGlow: 'rgba(226, 27, 35, 0.4)',
+    powerUnit: 'Audi',
+    base: 'Neuburg an der Donau / Hinwil',
+    teamPrincipal: 'Jonathan Wheatley',
+    technicalChief: 'Mattia Binotto',
+    chassis: 'R26',
+    firstEntry: '2026',
     championships: 0,
     drivers: ['hulkenberg', 'bortoleto'],
     carImageUrl: 'https://media.formula1.com/image/upload/c_lfill,h_224/q_auto/v1740000001/common/f1/2026/audi/2026audicarright.webp',
@@ -214,14 +233,17 @@ export const F1_TEAMS: Record<string, TeamMeta> = {
 
 // Aliases mapping for various API constructor IDs and historic/sponsor names
 const CONSTRUCTOR_ALIASES: Record<string, string> = {
-  audi: 'sauber',
-  audi_f1: 'sauber',
-  kick_sauber: 'sauber',
-  kick: 'sauber',
-  stake: 'sauber',
-  stake_f1_team_kick_sauber: 'sauber',
-  alfa: 'sauber',
-  alfa_romeo: 'sauber',
+  audi: 'audi',
+  audi_f1: 'audi',
+  audi_f1_team: 'audi',
+  audi_revolut_f1_team: 'audi',
+  kick_sauber: 'audi',
+  kick: 'audi',
+  stake: 'audi',
+  stake_f1_team_kick_sauber: 'audi',
+  sauber: 'audi',
+  alfa: 'audi',
+  alfa_romeo: 'audi',
   rb: 'rb',
   racing_bulls: 'rb',
   visa_cash_app_rb: 'rb',
@@ -311,17 +333,17 @@ export const DRIVER_DETAILS: Record<
   }
 > = {
   max_verstappen: {
-    number: 1,
+    number: 3,
     code: 'VER',
     teamId: 'red_bull',
-    countryCode: 'NLD',
+    countryCode: 'NED',
     countryFlag: '🇳🇱',
     birthDate: '1997-09-30',
     bio: 'Multi-time World Champion known for relentless racecraft and unparalleled precision.',
     worldTitles: 4,
   },
   norris: {
-    number: 4,
+    number: 1,
     code: 'NOR',
     teamId: 'mclaren',
     countryCode: 'GBR',
@@ -334,7 +356,7 @@ export const DRIVER_DETAILS: Record<
     number: 16,
     code: 'LEC',
     teamId: 'ferrari',
-    countryCode: 'MCO',
+    countryCode: 'MON',
     countryFlag: '🇲🇨',
     birthDate: '1997-10-16',
     bio: 'Monegasque sensation, master of one-lap qualifying magic and Ferrari heartthrob.',
@@ -483,8 +505,8 @@ export const DRIVER_DETAILS: Record<
   hulkenberg: {
     number: 27,
     code: 'HUL',
-    teamId: 'sauber',
-    countryCode: 'DEU',
+    teamId: 'audi',
+    countryCode: 'GER',
     countryFlag: '🇩🇪',
     birthDate: '1987-08-19',
     bio: 'Veteran qualifying specialist known for extracting every tenth from any chassis.',
@@ -493,7 +515,7 @@ export const DRIVER_DETAILS: Record<
   bortoleto: {
     number: 5,
     code: 'BOR',
-    teamId: 'sauber',
+    teamId: 'audi',
     countryCode: 'BRA',
     countryFlag: '🇧🇷',
     birthDate: '2004-10-14',
@@ -593,7 +615,7 @@ export const DRIVER_DETAILS: Record<
   gabriel_bortoleto: {
     number: 5,
     code: 'BOR',
-    teamId: 'sauber',
+    teamId: 'audi',
     countryCode: 'BRA',
     countryFlag: '🇧🇷',
     birthDate: '2004-10-14',
@@ -603,8 +625,8 @@ export const DRIVER_DETAILS: Record<
   nico_hulkenberg: {
     number: 27,
     code: 'HUL',
-    teamId: 'sauber',
-    countryCode: 'DEU',
+    teamId: 'audi',
+    countryCode: 'GER',
     countryFlag: '🇩🇪',
     birthDate: '1987-08-19',
     bio: 'Veteran qualifying specialist known for extracting every tenth from any chassis.',
@@ -694,14 +716,14 @@ export const DRIVER_DETAILS: Record<
     number: 16,
     code: 'LEC',
     teamId: 'ferrari',
-    countryCode: 'MCO',
+    countryCode: 'MON',
     countryFlag: '🇲🇨',
     birthDate: '1997-10-16',
     bio: 'Monegasque sensation, master of one-lap qualifying magic and Ferrari heartthrob.',
     worldTitles: 0,
   },
   lando_norris: {
-    number: 4,
+    number: 1,
     code: 'NOR',
     teamId: 'mclaren',
     countryCode: 'GBR',
@@ -721,10 +743,10 @@ export const DRIVER_DETAILS: Record<
     worldTitles: 7,
   },
   verstappen: {
-    number: 1,
+    number: 3,
     code: 'VER',
     teamId: 'red_bull',
-    countryCode: 'NLD',
+    countryCode: 'NED',
     countryFlag: '🇳🇱',
     birthDate: '1997-09-30',
     bio: 'Multi-time World Champion known for relentless racecraft and unparalleled precision.',
@@ -1223,6 +1245,36 @@ export function getNationalityFlag(nationalityOrCountry: string | undefined | nu
   if (norm.includes('belgian') || norm.includes('belgium') || norm === 'bel') return '🇧🇪';
 
   return '🏁';
+}
+
+export function getIsoNationalityCode(nationalityOrCountry: string | undefined | null): string {
+  if (!nationalityOrCountry) return 'FIA';
+  const norm = nationalityOrCountry.toLowerCase().trim();
+
+  if (norm.includes('british') || norm.includes('great britain') || norm.includes('united kingdom') || norm === 'uk' || norm === 'bri' || norm === 'gbr') return 'GBR';
+  if (norm.includes('french') || norm.includes('france') || norm === 'fre' || norm === 'fra') return 'FRA';
+  if (norm.includes('dutch') || norm.includes('netherlands') || norm === 'dut' || norm === 'nld' || norm === 'ned') return 'NED';
+  if (norm.includes('spanish') || norm.includes('spain') || norm === 'spa' || norm === 'esp') return 'ESP';
+  if (norm.includes('zealand') || norm === 'new' || norm === 'nzl') return 'NZL';
+  if (norm.includes('japanese') || norm.includes('japan') || norm === 'jap' || norm === 'jpn') return 'JPN';
+  if (norm.includes('italian') || norm.includes('italy') || norm === 'ita') return 'ITA';
+  if (norm.includes('australian') || norm.includes('australia') || norm === 'aus') return 'AUS';
+  if (norm.includes('argentine') || norm.includes('argentina') || norm === 'arg') return 'ARG';
+  if (norm.includes('brazilian') || norm.includes('brazil') || norm === 'bra') return 'BRA';
+  if (norm.includes('german') || norm.includes('germany') || norm === 'deu' || norm === 'ger') return 'GER';
+  if (norm.includes('monaco') || norm.includes('monegasque') || norm === 'mco' || norm === 'mon') return 'MON';
+  if (norm.includes('canadian') || norm.includes('canada') || norm === 'can') return 'CAN';
+  if (norm.includes('thai') || norm.includes('thailand') || norm === 'tha') return 'THA';
+  if (norm.includes('mexican') || norm.includes('mexico') || norm === 'mex') return 'MEX';
+  if (norm.includes('finnish') || norm.includes('finland') || norm === 'fin') return 'FIN';
+  if (norm.includes('danish') || norm.includes('denmark') || norm === 'den' || norm === 'dnk') return 'DEN';
+  if (norm.includes('american') || norm.includes('usa') || norm.includes('united states')) return 'USA';
+  if (norm.includes('chinese') || norm.includes('china') || norm === 'chn') return 'CHN';
+  if (norm.includes('swiss') || norm.includes('switzerland') || norm === 'sui' || norm === 'che') return 'SUI';
+  if (norm.includes('austrian') || norm.includes('austria') || norm === 'aut') return 'AUT';
+  if (norm.includes('belgian') || norm.includes('belgium') || norm === 'bel') return 'BEL';
+
+  return nationalityOrCountry.slice(0, 3).toUpperCase();
 }
 
 export const OFFICIAL_DRIVER_IMAGES: Record<string, string> = {

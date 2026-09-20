@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getDriverProfile, DriverCareerProfile, DriverSeasonEntry } from '@/lib/f1/driverCareer';
+import { getIsoNationalityCode } from '@/lib/f1/teams';
 import { OpenF1Session } from '@/lib/f1/types';
 import DriverAvatar from '@/components/f1/DriverAvatar';
 import DriverIdentityCard from '@/components/f1/DriverIdentityCard';
@@ -155,7 +156,7 @@ export default function DriverProfileModal({
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm">{profile.countryFlag}</span>
                   <span className="text-xs font-hud font-bold uppercase tracking-wider text-[var(--text-muted)]">
-                    {profile.nationality}
+                    [{getIsoNationalityCode(profile.nationality)}] {profile.nationality}
                   </span>
                   <span className="text-[var(--text-muted)]">•</span>
                   <span className="text-xs text-[var(--text-muted)] font-mono-num">

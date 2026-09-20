@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { DriverStanding, ConstructorStanding } from '@/lib/f1/types';
-import { F1_TEAMS, DRIVER_DETAILS, getTeamMeta, getDriverDetails } from '@/lib/f1/teams';
+import { F1_TEAMS, DRIVER_DETAILS, getTeamMeta, getDriverDetails, getIsoNationalityCode } from '@/lib/f1/teams';
 import {
   Users,
   Swords,
@@ -56,7 +56,7 @@ export default function PaddockView({
     : getTeamMeta('mclaren');
 
   const metaA = getDriverDetails(standingA?.Driver.driverId || '') || {
-    number: standingA?.Driver.permanentNumber ? parseInt(standingA.Driver.permanentNumber, 10) : 1,
+    number: standingA?.Driver.permanentNumber ? parseInt(standingA.Driver.permanentNumber, 10) : 3,
     code: standingA?.Driver.code || 'VER',
     countryFlag: '🇳🇱',
     worldTitles: 4,
@@ -64,11 +64,11 @@ export default function PaddockView({
   };
 
   const metaB = getDriverDetails(standingB?.Driver.driverId || '') || {
-    number: standingB?.Driver.permanentNumber ? parseInt(standingB.Driver.permanentNumber, 10) : 4,
+    number: standingB?.Driver.permanentNumber ? parseInt(standingB.Driver.permanentNumber, 10) : 1,
     code: standingB?.Driver.code || 'NOR',
     countryFlag: '🇬🇧',
-    worldTitles: 0,
-    bio: 'Championship contender with blistering pace.',
+    worldTitles: 1,
+    bio: 'Formula 1 World Champion with blistering pace.',
   };
 
   const ptsA = parseFloat(standingA?.points || '0');
@@ -192,7 +192,7 @@ export default function PaddockView({
                   </div>
                   <div>
                     <div className="text-xs font-hud font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 justify-center sm:justify-start">
-                      <span>[{standingA?.Driver.nationality?.slice(0, 3).toUpperCase() || 'FIA'}]</span>
+                      <span>[{getIsoNationalityCode(standingA?.Driver.nationality)}]</span>
                       <span>{standingA?.Driver.nationality}</span>
                     </div>
                     <h3 className="text-2xl sm:text-3xl font-hud font-black uppercase text-[var(--text-primary)] leading-tight">
@@ -225,7 +225,7 @@ export default function PaddockView({
                   <div>
                     <div className="text-xs font-hud font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center gap-1.5 justify-center sm:justify-end">
                       <span>{standingB?.Driver.nationality}</span>
-                      <span>[{standingB?.Driver.nationality?.slice(0, 3).toUpperCase() || 'FIA'}]</span>
+                      <span>[{getIsoNationalityCode(standingB?.Driver.nationality)}]</span>
                     </div>
                     <h3 className="text-2xl sm:text-3xl font-hud font-black uppercase text-[var(--text-primary)] leading-tight">
                       {standingB?.Driver.givenName}{' '}
@@ -534,7 +534,7 @@ export default function PaddockView({
                     />
                     <div className="min-w-0 flex-1">
                       <div className="text-[10px] font-mono-num font-bold text-[var(--text-muted)] uppercase truncate">
-                        [{s.Driver.nationality?.slice(0, 3).toUpperCase() || 'FIA'}] • {team.name}
+                        [{getIsoNationalityCode(s.Driver.nationality)}] • {team.name}
                       </div>
                       <div className="text-sm font-hud font-black uppercase text-[var(--text-primary)] leading-snug truncate">
                         {s.Driver.givenName}{' '}

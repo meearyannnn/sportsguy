@@ -334,6 +334,7 @@ export async function getDriverProfile(driverId: string): Promise<DriverCareerPr
     profile.careerSpan = '2007 – Present';
     profile.teamTenure = '2025 – Present';
   } else if (normalizedId === 'verstappen' || normalizedId === 'max_verstappen') {
+    profile.permanentNumber = 3;
     profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 71);
     profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 133);
     profile.careerTotals.poles = Math.max(profile.careerTotals.poles, 48);
@@ -343,6 +344,8 @@ export async function getDriverProfile(driverId: string): Promise<DriverCareerPr
     profile.careerTotals.podiumRatePercent = 53.8;
     profile.careerSpan = '2015 – Present';
     profile.teamTenure = '2016 – Present';
+  } else if (normalizedId === 'norris' || normalizedId === 'lando_norris') {
+    profile.permanentNumber = 1;
   } else if (normalizedId === 'piastri' || normalizedId === 'oscar_piastri') {
     profile.careerTotals.wins = Math.max(profile.careerTotals.wins, 9);
     profile.careerTotals.podiums = Math.max(profile.careerTotals.podiums, 28);
@@ -368,6 +371,20 @@ export async function getDriverProfile(driverId: string): Promise<DriverCareerPr
     profile.firstsAndBests.firstPodium = '2026 British Grand Prix (P3)';
     profile.firstsAndBests.firstPoints = '2025 Bahrain Grand Prix (P8)';
     profile.careerTotals.bestSeasonRank = 8;
+  } else if (
+    normalizedId === 'bortoleto' ||
+    normalizedId === 'gabriel_bortoleto' ||
+    normalizedId === 'hulkenberg' ||
+    normalizedId === 'nico_hulkenberg'
+  ) {
+    profile.currentOrFinalTeam = 'Audi Formula 1 Team';
+    profile.teamColor = '#E21B23';
+    profile.teamSecondaryColor = '#C0C0C0';
+    if (profile.timeline.length > 0 && profile.timeline[0].season === 2026) {
+      profile.timeline[0].teamId = 'audi';
+      profile.timeline[0].teamName = 'Audi Formula 1 Team';
+      profile.timeline[0].teamColor = '#E21B23';
+    }
   }
 
   // Apply archive firsts and peaks for all drivers
@@ -1044,7 +1061,7 @@ function buildDriverProfileRaw(driverId: string): DriverCareerProfile {
       return {
         driverId: 'max_verstappen',
         code: 'VER',
-        permanentNumber: 1,
+        permanentNumber: 3,
         givenName: 'Max',
         familyName: 'Verstappen',
         fullName: 'Max Verstappen',
@@ -1145,7 +1162,7 @@ function buildDriverProfileRaw(driverId: string): DriverCareerProfile {
       return {
         driverId: 'norris',
         code: 'NOR',
-        permanentNumber: 4,
+        permanentNumber: 1,
         givenName: 'Lando',
         familyName: 'Norris',
         fullName: 'Lando Norris',
@@ -2328,12 +2345,12 @@ function buildDriverProfileRaw(driverId: string): DriverCareerProfile {
         age: 38,
         isActive: true,
         careerSpan: '2010 – Present',
-        currentOrFinalTeam: 'Stake F1 Team Kick Sauber',
+        currentOrFinalTeam: 'Audi Formula 1 Team',
         teamTenure: '2025 – Present',
-        teamColor: '#52E252',
-        teamSecondaryColor: '#000000',
+        teamColor: '#E21B23',
+        teamSecondaryColor: '#C0C0C0',
         biography:
-          'Veteran German qualifying specialist known for remarkable consistency, wet-weather brilliance, and leading Stake F1 Team Kick Sauber ahead of their Audi factory transition.',
+          'Veteran German qualifying specialist known for remarkable consistency, wet-weather brilliance, and spearheading the Audi Formula 1 Team factory program.',
         championships: 0,
         allTimeRanks: { championships: 0, wins: 50, podiums: 50, poles: 45, points: 22, starts: 24 },
         careerTotals: {
@@ -2385,7 +2402,7 @@ function buildDriverProfileRaw(driverId: string): DriverCareerProfile {
           ],
         },
         timeline: [
-          { season: 2026, teamId: 'sauber', teamName: 'Stake F1 Team Kick Sauber', teamColor: '#52E252', championshipPosition: 15, points: 14, wins: 0, podiums: 0, racesCount: 14 },
+          { season: 2026, teamId: 'audi', teamName: 'Audi Formula 1 Team', teamColor: '#E21B23', championshipPosition: 15, points: 14, wins: 0, podiums: 0, racesCount: 14 },
           { season: 2025, teamId: 'sauber', teamName: 'Kick Sauber', teamColor: '#52E252', championshipPosition: 16, points: 22, wins: 0, podiums: 0, racesCount: 24 },
           { season: 2024, teamId: 'haas', teamName: 'Haas F1 Team', teamColor: '#E6002B', championshipPosition: 11, points: 41, wins: 0, podiums: 0, racesCount: 24 },
           { season: 2023, teamId: 'haas', teamName: 'Haas F1 Team', teamColor: '#E6002B', championshipPosition: 16, points: 9, wins: 0, podiums: 0, racesCount: 22 },
@@ -2505,12 +2522,12 @@ function buildDriverProfileRaw(driverId: string): DriverCareerProfile {
         age: 21,
         isActive: true,
         careerSpan: '2025 – Present',
-        currentOrFinalTeam: 'Stake F1 Team Kick Sauber',
+        currentOrFinalTeam: 'Audi Formula 1 Team',
         teamTenure: '2025 – Present',
-        teamColor: '#52E252',
-        teamSecondaryColor: '#000000',
+        teamColor: '#E21B23',
+        teamSecondaryColor: '#C0C0C0',
         biography:
-          'Formula 3 and Formula 2 champion representing Brazil in Formula 1 for Stake F1 Team Kick Sauber ahead of the Audi factory era, noted for clinical wheel-to-wheel racecraft.',
+          'Formula 3 and Formula 2 champion representing Brazil in Formula 1 for the Audi Formula 1 Team, noted for clinical wheel-to-wheel racecraft.',
         championships: 0,
         allTimeRanks: { championships: 0, wins: 50, podiums: 50, poles: 50, points: 47, starts: 81 },
         careerTotals: {
@@ -2562,7 +2579,7 @@ function buildDriverProfileRaw(driverId: string): DriverCareerProfile {
           ],
         },
         timeline: [
-          { season: 2026, teamId: 'sauber', teamName: 'Stake F1 Team Kick Sauber', teamColor: '#52E252', championshipPosition: 19, points: 4, wins: 0, podiums: 0, racesCount: 14 },
+          { season: 2026, teamId: 'audi', teamName: 'Audi Formula 1 Team', teamColor: '#E21B23', championshipPosition: 19, points: 4, wins: 0, podiums: 0, racesCount: 14 },
           { season: 2025, teamId: 'sauber', teamName: 'Kick Sauber', teamColor: '#52E252', championshipPosition: 19, points: 8, wins: 0, podiums: 0, racesCount: 24 },
         ],
         circuitRecords: [
