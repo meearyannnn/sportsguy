@@ -13,7 +13,7 @@ export interface TimelinePoint {
   round: number;
   raceName: string;
   circuitId: string;
-  driverPoints: Record<string, number>; // driverId → cumulative points at this round
+  driverPoints: Record<string, number | null | undefined>;
 }
 
 export interface SeasonTimeline {
@@ -62,11 +62,11 @@ async function fetchWithRetry<T>(url: string, retries = 3): Promise<T | null> {
         return (await res.json()) as T;
       }
       if (res.status === 429) {
-        await sleep(500 * attempt);
+        await sleep(600 * attempt);
         continue;
       }
     } catch {
-      await sleep(500 * attempt);
+      await sleep(600 * attempt);
     }
   }
   return null;
@@ -85,24 +85,42 @@ export async function buildSeasonTimeline(
   if (HISTORICAL_TIMELINES[normSeason]) {
     const base = HISTORICAL_TIMELINES[normSeason];
     const topDriverIds = base.driverIds.slice(0, topN);
+    // Filter out any round with no results before serving
+    const validRounds = base.rounds.filter((r) => {
+      if (!r.driverPoints) return false;
+      const pts = Object.values(r.driverPoints).filter(
+        (v): v is number => typeof v === 'number' && !isNaN(v) && v > 0
+      );
+      return pts.length > 0;
+    });
+
     const filteredTimeline: SeasonTimeline = {
       ...base,
+      rounds: validRounds,
       driverIds: topDriverIds,
     };
     tlCache.set(cacheKey, { ts: Date.now(), data: filteredTimeline });
     return filteredTimeline;
   }
 
-  // 2. Resilient live fetcher for other / future seasons
+  // 2. Resilient live fetcher: build round list ONLY from races that were actually held
   try {
-    const calJson = await fetchWithRetry<any>(`${JOLPICA_BASE}/${normSeason}.json?limit=30`);
-    const races: any[] = calJson?.MRData?.RaceTable?.Races ?? [];
-    const completedRaces = races.filter((r) => {
-      const raceDate = new Date(r.date);
-      return raceDate < new Date();
-    });
+    // Fetch races that actually had a winner (held races only — automatically omits cancelled races like Imola 2023 and future rounds)
+    let heldRaces: any[] = [];
+    const resultsJson = await fetchWithRetry<any>(
+      `${JOLPICA_BASE}/${normSeason}/results/1.json?limit=35`
+    );
+    heldRaces = resultsJson?.MRData?.RaceTable?.Races ?? [];
 
-    if (completedRaces.length === 0) return null;
+    // If results/1.json is empty (e.g. brand new season), check calendar for completed dates
+    if (heldRaces.length === 0) {
+      const calJson = await fetchWithRetry<any>(`${JOLPICA_BASE}/${normSeason}.json?limit=30`);
+      const races: any[] = calJson?.MRData?.RaceTable?.Races ?? [];
+      const now = new Date();
+      heldRaces = races.filter((r) => new Date(r.date) < now);
+    }
+
+    if (heldRaces.length === 0) return null;
 
     // Get standings to identify top drivers
     const finalStandingsJson = await fetchWithRetry<any>(
@@ -112,6 +130,8 @@ export async function buildSeasonTimeline(
       finalStandingsJson?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
     const topDrivers = finalStandings.slice(0, topN);
     const driverIds = topDrivers.map((ds) => ds.Driver.driverId);
+
+    if (driverIds.length === 0) return null;
 
     const driverNames: Record<string, string> = {};
     const driverCodes: Record<string, string> = {};
@@ -130,53 +150,68 @@ export async function buildSeasonTimeline(
     const cumulativePoints: Record<string, number> = {};
     driverIds.forEach((did) => { cumulativePoints[did] = 0; });
 
-    for (const race of completedRaces) {
-      const url = `${JOLPICA_BASE}/${normSeason}/${race.round}/driverstandings.json?limit=25`;
+    for (const race of heldRaces) {
+      const roundNum = parseInt(race.round, 10);
+      const url = `${JOLPICA_BASE}/${normSeason}/${roundNum}/driverstandings.json?limit=25`;
       const json = await fetchWithRetry<any>(url);
       const standings: DriverStanding[] =
         json?.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
 
-      // If standings are completely missing or round was cancelled/unheld, do not create a fake 0 drop
+      // If standings are completely missing, skip this round — do NOT plot dummy 0s
       if (standings.length === 0) {
         continue;
       }
 
-      const roundPoints: Record<string, number> = {};
+      const roundPoints: Record<string, number | null> = {};
       let totalPointsInRound = 0;
 
       driverIds.forEach((did) => {
         const match = standings.find((ds) => ds.Driver.driverId === did);
-        const raw = match ? parseFloat(match.points) : cumulativePoints[did];
-        // Strictly non-decreasing: points can never be lower than previous round
-        const verifiedPoints = Math.max(raw || 0, cumulativePoints[did]);
-        roundPoints[did] = verifiedPoints;
-        totalPointsInRound += verifiedPoints;
+        if (match) {
+          const raw = parseFloat(match.points);
+          // Cumulative points can never decrease
+          const verifiedPoints = Math.max(raw || 0, cumulativePoints[did]);
+          roundPoints[did] = verifiedPoints;
+          cumulativePoints[did] = verifiedPoints;
+          totalPointsInRound += verifiedPoints;
+        } else {
+          // If driver has previous cumulative points, keep them; otherwise null
+          roundPoints[did] = cumulativePoints[did] > 0 ? cumulativePoints[did] : null;
+        }
       });
 
-      // Avoid empty/unheld round entries with zero points
+      // Avoid adding empty/unheld round entries with zero total points
       if (totalPointsInRound === 0) {
         continue;
       }
 
-      // Update running cumulative points
-      Object.assign(cumulativePoints, roundPoints);
-
       rounds.push({
-        round: parseInt(race.round, 10),
+        round: roundNum,
         raceName: race.raceName.replace(' Grand Prix', ' GP'),
         circuitId: race.Circuit?.circuitId ?? '',
         driverPoints: roundPoints,
       });
 
-      // Polite delay between rounds
-      await sleep(100);
+      // Polite delay between rounds to respect API rate limits
+      await sleep(120);
     }
 
-    rounds.sort((a, b) => a.round - b.round);
+    // Filter out any round with no results before drawing the chart
+    const validRounds = rounds.filter((r) => {
+      if (!r.driverPoints) return false;
+      const pts = Object.values(r.driverPoints).filter(
+        (v): v is number => typeof v === 'number' && !isNaN(v) && v > 0
+      );
+      return pts.length > 0;
+    });
+
+    if (validRounds.length === 0) return null;
+
+    validRounds.sort((a, b) => a.round - b.round);
 
     const timeline: SeasonTimeline = {
       season: normSeason,
-      rounds,
+      rounds: validRounds,
       driverIds,
       driverNames,
       driverCodes,

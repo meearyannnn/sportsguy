@@ -31,15 +31,31 @@ function TimelineChart({
   const chartW = WIDTH - PAD.left - PAD.right;
   const chartH = HEIGHT - PAD.top - PAD.bottom;
 
-  const visibleRounds = timeline.rounds.slice(0, animateToRound);
+  // 1. Filter out any round with no results before drawing the chart
+  const heldRounds = timeline.rounds.filter((r) => {
+    if (!r.driverPoints) return false;
+    const scores = Object.values(r.driverPoints).filter(
+      (v): v is number => typeof v === 'number' && !isNaN(v) && v > 0
+    );
+    return scores.length > 0;
+  });
+
+  const visibleRounds = heldRounds.slice(0, Math.min(animateToRound, heldRounds.length));
   if (visibleRounds.length === 0) return null;
 
-  const leaderPoints = (round: (typeof timeline.rounds)[0]) =>
-    Math.max(...timeline.driverIds.map((id) => round.driverPoints[id] ?? 0), 1);
+  const leaderPoints = (round: (typeof timeline.rounds)[0]) => {
+    const pts = timeline.driverIds
+      .map((id) => round.driverPoints[id])
+      .filter((v): v is number => typeof v === 'number' && !isNaN(v));
+    return Math.max(...pts, 1);
+  };
 
-  // Compute Y values
-  function getY(round: (typeof timeline.rounds)[0], driverId: string): number {
-    const raw = round.driverPoints[driverId] ?? 0;
+  // Compute Y values; return null if missing or undefined
+  function getY(round: (typeof timeline.rounds)[0], driverId: string): number | null {
+    const raw = round.driverPoints[driverId];
+    if (raw === null || raw === undefined || typeof raw !== 'number' || isNaN(raw)) {
+      return null;
+    }
     if (gapMode) {
       const leader = leaderPoints(round);
       return Math.max(0, leader - raw); // gap to leader (0 = leader, higher = further behind)
@@ -51,6 +67,7 @@ function TimelineChart({
     timeline.driverIds
       .filter((id) => selectedDrivers.has(id))
       .map((id) => getY(r, id))
+      .filter((v): v is number => v !== null)
   );
   const maxY = Math.max(...allY, 1);
   const minY = 0;
@@ -72,21 +89,53 @@ function TimelineChart({
   for (let v = 0; v <= maxY; v += yStep) yTicks.push(v);
   if (!yTicks.includes(0)) yTicks.unshift(0);
 
-  // Anti-collision label positioning for the end of the line
-  const lastRound = visibleRounds[visibleRounds.length - 1];
   const activeDriverIds = timeline.driverIds.filter((id) => selectedDrivers.has(id));
 
+  // Build each driver's valid points series — stops at last real round
+  const driverData = new Map<
+    string,
+    {
+      points: { x: number; y: number; pts: number; roundIdx: number }[];
+      last: { x: number; y: number; pts: number; roundIdx: number };
+    }
+  >();
+
+  activeDriverIds.forEach((driverId) => {
+    const points: { x: number; y: number; pts: number; roundIdx: number }[] = [];
+    visibleRounds.forEach((r, i) => {
+      const yVal = getY(r, driverId);
+      const rawPts = r.driverPoints[driverId];
+      if (yVal !== null && typeof rawPts === 'number' && !isNaN(rawPts)) {
+        points.push({
+          x: xScale(i),
+          y: yScale(yVal),
+          pts: rawPts,
+          roundIdx: i,
+        });
+      }
+    });
+
+    if (points.length > 0) {
+      driverData.set(driverId, {
+        points,
+        last: points[points.length - 1],
+      });
+    }
+  });
+
+  // Anti-collision label positioning for the end of each driver's real line
   const labels = activeDriverIds
+    .filter((id) => driverData.has(id))
     .map((id) => {
-      const rawY = yScale(getY(lastRound, id));
-      const pts = lastRound.driverPoints[id] ?? 0;
+      const d = driverData.get(id)!;
       return {
         id,
         code: timeline.driverCodes[id] ?? id.slice(0, 3).toUpperCase(),
         color: timeline.constructorColors[id] ?? '#888888',
-        pts,
-        rawY,
-        y: rawY,
+        pts: d.last.pts,
+        rawY: d.last.y,
+        y: d.last.y,
+        x: d.last.x,
       };
     })
     .sort((a, b) => a.rawY - b.rawY);
@@ -174,19 +223,17 @@ function TimelineChart({
 
         {/* Driver lines */}
         {activeDriverIds.map((driverId) => {
+          const d = driverData.get(driverId);
+          if (!d || d.points.length === 0) return null;
+
           const color = timeline.constructorColors[driverId] ?? '#888888';
-          const points = visibleRounds.map((r, i) => ({
-            x: xScale(i),
-            y: yScale(getY(r, driverId)),
-          }));
-          const pathD = points
+          const pathD = d.points
             .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
             .join(' ');
 
-          const last = points[points.length - 1];
+          const last = d.last;
           const labelInfo = labelMap.get(driverId);
           const labelY = labelInfo ? labelInfo.y : last.y;
-          const displayPts = lastRound.driverPoints[driverId] ?? 0;
 
           return (
             <g key={driverId}>
@@ -227,7 +274,12 @@ function TimelineChart({
                 fontWeight="800"
                 letterSpacing="0.4"
               >
-                {timeline.driverCodes[driverId]} <tspan fontSize="7" opacity="0.85" fontFamily="var(--font-mono)">{gapMode ? `+${getY(lastRound, driverId)}` : displayPts}</tspan>
+                {timeline.driverCodes[driverId]}{' '}
+                <tspan fontSize="7" opacity="0.85" fontFamily="var(--font-mono)">
+                  {gapMode
+                    ? `+${Math.max(0, leaderPoints(visibleRounds[last.roundIdx]) - last.pts)}`
+                    : last.pts}
+                </tspan>
               </text>
             </g>
           );
