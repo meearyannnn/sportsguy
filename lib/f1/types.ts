@@ -237,4 +237,6 @@ export interface TeamMeta {
   drivers: string[];
   carImageUrl?: string;
   logoImageUrl?: string;
+  allTimeWins?: number;
+  allTimePoles?: number;
 }
