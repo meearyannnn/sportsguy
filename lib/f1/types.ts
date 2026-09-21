@@ -234,6 +234,10 @@ export interface TeamMeta {
   chassis?: string;
   firstEntry?: string;
   championships: number;
+  allTimeWins?: number;
+  allTimePoles?: number;
+  highestRaceFinish?: string;
+  fastestLaps?: number;
   drivers: string[];
   carImageUrl?: string;
   logoImageUrl?: string;
