@@ -19,6 +19,15 @@ export const CIRCUIT_DATABASE: Record<string, CircuitMedia> = {
     trackLength: '5.412 km',
     turns: 15,
   },
+  sepang: {
+    id: 'sepang',
+    name: 'Sepang International Circuit',
+    location: 'Kuala Lumpur, Malaysia',
+    countryFlag: '🇲🇾',
+    imageUrl: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=1200&q=80',
+    trackLength: '5.543 km',
+    turns: 15,
+  },
   jeddah: {
     id: 'jeddah',
     name: 'Jeddah Corniche Circuit',

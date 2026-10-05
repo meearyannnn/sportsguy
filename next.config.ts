@@ -32,7 +32,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
-      "img-src 'self' data: blob: https://upload.wikimedia.org https://media.formula1.com https://*.motorsport.com https://*.autosport.com",
+      "img-src 'self' data: blob: https://upload.wikimedia.org https://media.formula1.com https://*.motorsport.com https://*.autosport.com https://images.unsplash.com",
       "connect-src 'self' https://api.jolpi.ca https://api.openf1.org https://feeds.bbci.co.uk https://www.autosport.com https://www.motorsport.com https://the-race.com",
       "media-src 'self' data:",
       "object-src 'none'",

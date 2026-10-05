@@ -69,6 +69,9 @@ const PredictionEngine = dynamic(() => import('@/components/f1/PredictionEngine'
 const ChampionshipTimeline = dynamic(() => import('@/components/f1/ChampionshipTimeline'), {
   loading: () => <DynamicLoadingSkeleton />,
 });
+const LiveCenter = dynamic(() => import('@/components/f1/live/LiveCenter'), {
+  loading: () => <DynamicLoadingSkeleton />,
+});
 import {
   getCalendar,
   getDriverStandings,
@@ -523,6 +526,7 @@ export default function ApexHome() {
                       showFeed={false}
                       onToggleGlance={() => setIsGlanceModeOpen(true)}
                       nextRace={nextRace}
+                      calendar={calendar}
                       useLocalTime={useLocalTime}
                     />
                   </div>
@@ -584,6 +588,7 @@ export default function ApexHome() {
               <StorytellingHub
                 nextRace={nextRace}
                 standings={driverStandings}
+                calendar={calendar}
                 onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
               />
             )}
@@ -606,9 +611,9 @@ export default function ApexHome() {
               />
             )}
 
-            {/* TAB: LIVE TELEMETRY HUD */}
+            {/* TAB: LIVE CENTER — full race weekend dashboard */}
             {activeTab === 'live' && (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <AskApexBar
                   driverStandings={driverStandings}
                   calendar={calendar}
@@ -616,17 +621,7 @@ export default function ApexHome() {
                   onNavigateTab={handleTabChange}
                   onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
                 />
-                <LiveTelemetryHUD
-                  session={latestSession}
-                  initialWeather={weather}
-                  initialIntervals={intervals}
-                  driverStandings={driverStandings}
-                  onSelectDriver={(driverId) => setSelectedDriverProfileId(driverId)}
-                  showFeed={true}
-                  onToggleGlance={() => setIsGlanceModeOpen(true)}
-                  nextRace={nextRace}
-                  useLocalTime={useLocalTime}
-                />
+                <LiveCenter />
               </div>
             )}
 
